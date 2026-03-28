@@ -36,7 +36,7 @@ const FEATURES = [
 
 const STATS = [
   { num: "$7B+", label: "Scholarships unclaimed yearly" },
-  { num: "1 in 4", label: "students who are first-gen" },
+  { num: "1 in 3", label: "of college students are first-gen" },
   { num: "Free", label: "Always, for students" },
 ];
 
@@ -78,7 +78,11 @@ export default function Landing() {
           <div className={styles.logo}>
             <span className={styles.logoText}>Legacy</span>
           </div>
-          <div className={styles.trackBadge}>Track 3 · Economic Empowerment</div>
+          <div className={styles.navLinks}>
+            <span className={styles.navLink} onClick={() => navigate("/tracker")}>
+              My Scholarships
+            </span>
+          </div>
         </nav>
 
         <div className={styles.heroContent}>
