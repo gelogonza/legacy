@@ -1,7 +1,6 @@
 # Legacy — Your path to college starts here
 
-**Track 3: Economic Empowerment & Education**  
-Built for first-generation Black college students.
+Built for first-generation, low-income college students.
 
 ---
 
@@ -9,10 +8,10 @@ Built for first-generation Black college students.
 
 ```bash
 npm install
-npm run dev   # → http://localhost:3000
+npm run dev
 ```
 
-Requires an Anthropic API key. The app calls `https://api.anthropic.com/v1/messages` directly.
+Requires a `VITE_ANTHROPIC_KEY` in `.env`. The app calls the Anthropic API directly from the browser.
 
 ---
 
@@ -20,59 +19,57 @@ Requires an Anthropic API key. The app calls `https://api.anthropic.com/v1/messa
 
 ```
 src/
-├── App.jsx                    ← Router — all 5 routes live here
-├── tokens.css                 ← Design tokens (colors, fonts, spacing)
+├── App.jsx                          ← Router (6 routes)
+├── tokens.css                       ← Design tokens (colors, fonts, spacing)
 ├── hooks/
-│   └── useClaude.js           ← Claude API + system prompts + rec extractor
+│   ├── useClaude.js                 ← Claude API, system prompts, profile injection, scholarship parsing
+│   └── useProfile.js                ← Persistent student profile (localStorage)
+├── components/
+│   ├── ScholarshipCard.jsx          ← Structured scholarship result card
+│   ├── ScholarshipCard.module.css
+│   └── SkyBackground.jsx            ← Animated sky gradient background
 └── pages/
-    ├── Landing.jsx            ← Home screen (matches Figma design)
+    ├── Landing.jsx                  ← Home screen
     ├── Landing.module.css
-    ├── ChatPage.jsx           ← Reusable chat UI (all 4 features use this)
-    └── ChatPage.module.css
+    ├── ChatPage.jsx                 ← Reusable chat UI (all 4 AI features)
+    ├── ChatPage.module.css
+    ├── Tracker.jsx                  ← Saved scholarships + status tracking
+    └── Tracker.module.css
 ```
 
 ---
 
 ## Features
 
-| Route | Feature | System Prompt Focus |
+| Route | Feature | Description |
 |---|---|---|
-| `/scholarships` | Scholarship matcher | Personalized scholarship discovery |
-| `/fafsa` | FAFSA guide | Plain-language financial aid navigation |
-| `/essay` | Essay coach | Authentic college essay feedback |
-| `/roadmap` | College roadmap | Personalized college planning timeline |
+| `/scholarships` | Scholarship Matcher | AI-powered scholarship discovery with structured JSON cards |
+| `/fafsa` | FAFSA Guide | Plain-language financial aid navigation |
+| `/essay` | Essay Coach | Authentic college essay feedback |
+| `/roadmap` | College Roadmap | Personalized college planning timeline |
+| `/tracker` | Saved Scholarships | Deadline tracking with status toggles |
 
 ---
 
-## Adding a New Feature
+## Key Functionality
 
-1. Add a system prompt to `useClaude.js` → `SYSTEM_PROMPTS`
-2. Add starter prompts to `ChatPage.jsx` → `STARTERS`
-3. Add metadata to `ChatPage.jsx` → `FEATURE_META`
-4. Add a card to `Landing.jsx` → `FEATURES`
-5. Add a route to `App.jsx`
+- **Student Profile** — persisted in localStorage, auto-injected into every AI conversation
+- **Structured Scholarships** — Claude returns `<scholarships>` JSON tags, parsed into cards with deadline badges
+- **Scholarship Tracker** — save scholarships, track status (Not started → In progress → Submitted)
+- **Document Upload** — image/document analysis via Claude's vision capability
 
 ---
 
 ## Design Tokens
 
-All colors are in `tokens.css` as CSS variables:
+All colors in `tokens.css` — sky blue palette:
 
 ```css
---orange:       #e8701a   /* Primary CTA, scholarship feature */
---green:        #2d8a45   /* FAFSA feature */
---amber:        #e8a832   /* Stats, essay feature */
---green-light:  #5ec47a   /* Pills, roadmap feature */
---bg:           #0a0a0a   /* Page background */
+--orange:       #0077b6   /* Primary action (Bright Teal Blue) */
+--green:        #00b4d8   /* Secondary (Turquoise Surf) */
+--green-light:  #48cae4   /* Tertiary (Sky Aqua) */
+--amber:        #90e0ef   /* Highlight (Frosted Blue) */
+--bg:           #020c18   /* Deep navy background */
 ```
 
----
-
-## Judging Criteria Alignment
-
-| Criterion | How Legacy addresses it |
-|---|---|
-| **Impact Potential (25pts)** | Specific population (first-gen Black students), real problem ($7B unclaimed scholarships) |
-| **Technical Execution (30pts)** | 4 working AI features, image upload, conversation history, structured rec extraction |
-| **Ethical Alignment (25pts)** | Empowers users with information, never makes decisions for them, culturally aware prompts |
-| **Presentation (20pts)** | Stats-led pitch opening, clear demo path through all 4 features |
+Fonts: Geist (display + body), Playfair Display (hero italic accent).
