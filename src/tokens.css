@@ -1,0 +1,56 @@
+/* ── Legacy Design Tokens ─────────────────────────────────────────────────── */
+/* Pulled directly from Figma file: jwlovde9rXOwTkdffZuOoj                    */
+
+:root {
+  /* Brand colors */
+  --orange:        #e8701a;
+  --orange-dark:   #d45e0a;
+  --orange-light:  #f0a832;
+  --green:         #2d8a45;
+  --green-light:   #5ec47a;
+  --amber:         #e8a832;
+
+  /* Backgrounds */
+  --bg:            #0a0a0a;
+  --surface:       rgba(255, 255, 255, 0.04);
+  --surface-hover: rgba(255, 255, 255, 0.07);
+
+  /* Text */
+  --text:          #f0ede6;
+  --text-60:       rgba(240, 237, 230, 0.6);
+  --text-50:       rgba(240, 237, 230, 0.5);
+  --text-40:       rgba(240, 237, 230, 0.4);
+  --text-70:       rgba(240, 237, 230, 0.7);
+
+  /* Borders */
+  --border:        rgba(255, 255, 255, 0.08);
+  --border-20:     rgba(255, 255, 255, 0.2);
+
+  /* Typography */
+  --font-display:  'Sora', sans-serif;
+  --font-body:     'Inter', sans-serif;
+
+  /* Spacing */
+  --radius-sm:     8px;
+  --radius-md:     10px;
+  --radius-lg:     12px;
+  --radius-pill:   20px;
+}
+
+/* ── Reset ───────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body, #root { height: 100%; }
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+button { cursor: pointer; font-family: var(--font-body); }
+a { text-decoration: none; color: inherit; }
+p { margin: 0; }
+
+/* ── Scrollbar ───────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
