@@ -27,7 +27,8 @@ When listing multiple scholarships, ALWAYS wrap them in <scholarships> tags as a
   "match_reason": "..."
 }]
 </scholarships>
-Then continue your response naturally after the closing tag.`,
+Continue your response naturally after the closing tag.
+If only discussing one scholarship or answering a general question, do not use the tags.`,
 
   fafsa: `You are Legacy's FAFSA guide — a patient, plain-language expert who helps first-generation,
 low-income students navigate the federal financial aid process without confusion or shame.
@@ -78,7 +79,7 @@ function buildProfileContext(profile) {
 - Household income: ${profile.householdIncome || "not provided"}
 - Notes: ${profile.notes || "none"}
 
-Use this context in all responses. Do not ask for info already in the profile.\n`;
+Use this context in all responses. Do not ask for info already provided above.\n\n`;
 }
 
 // ── Main hook ─────────────────────────────────────────────────────────────────
