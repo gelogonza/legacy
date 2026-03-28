@@ -2,18 +2,18 @@
 /* Pulled directly from Figma file: jwlovde9rXOwTkdffZuOoj                    */
 
 :root {
-  /* Brand colors */
-  --orange:        #e8701a;
-  --orange-dark:   #d45e0a;
-  --orange-light:  #f0a832;
-  --green:         #2d8a45;
-  --green-light:   #5ec47a;
-  --amber:         #e8a832;
+  /* Brand colors — teal/blue palette */
+  --orange:        #0077b6;   /* primary action — Bright Teal Blue  */
+  --orange-dark:   #005f92;   /* hover/pressed                      */
+  --orange-light:  #0096c7;   /* lighter accent — Blue Green        */
+  --green:         #00b4d8;   /* secondary — Turquoise Surf         */
+  --green-light:   #48cae4;   /* tertiary — Sky Aqua                */
+  --amber:         #90e0ef;   /* highlight — Frosted Blue           */
 
   /* Backgrounds */
-  --bg:            #0a0a0a;
-  --surface:       rgba(255, 255, 255, 0.04);
-  --surface-hover: rgba(255, 255, 255, 0.07);
+  --bg:            #020c18;   /* deep navy instead of pure black    */
+  --surface:       rgba(255, 255, 255, 0.05);
+  --surface-hover: rgba(255, 255, 255, 0.09);
 
   /* Text */
   --text:          #f0ede6;

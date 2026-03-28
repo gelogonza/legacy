@@ -36,7 +36,7 @@ const FEATURES = [
 
 const STATS = [
   { num: "$7B+", label: "Scholarships unclaimed yearly" },
-  { num: "1 in 4", label: "Black students are first-gen" },
+  { num: "1 in 4", label: "students who are first-gen" },
   { num: "Free", label: "Always, for students" },
 ];
 
@@ -88,7 +88,7 @@ export default function Landing() {
           </h1>
 
           <p className={styles.subtext}>
-            The AI-powered college guide built for first-generation Black students.
+            The AI-powered college guide built for first-generation, low-income students.
           </p>
 
           <div className={styles.ctaRow}>

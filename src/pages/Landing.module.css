@@ -43,8 +43,8 @@
   font-size: 11px;
   padding: 5px 14px;
   border-radius: var(--radius-pill);
-  border: 0.5px solid rgba(232, 112, 26, 0.4);
-  background: rgba(232, 112, 26, 0.08);
+  border: 0.5px solid rgba(0, 119, 182, 0.4);
+  background: rgba(0, 119, 182, 0.08);
   color: var(--orange);
 }
 

@@ -1,2 +1,14 @@
 .env
-node_modules
+.env.local
+.env.*.local
+node_modules/
+
+dist/
+build/
+vite/
+.vscode/settings.json
+.idea/
+.DS_Store
+Thumbs.db
+
+.log npm-debug.log
