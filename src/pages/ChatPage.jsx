@@ -1,13 +1,15 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useClaude } from "../hooks/useClaude";
+import { useProfile } from "../hooks/useProfile";
+import ScholarshipCard from "../components/ScholarshipCard";
 import styles from "./ChatPage.module.css";
 
 // ── Starter prompts per feature ───────────────────────────────────────────────
 const STARTERS = {
   scholarships: [
-    "I'm a Black first-gen student with a 3.4 GPA in Texas. What scholarships can I apply for?",
-    "What scholarships exist specifically for Black students studying STEM?",
+    "I'm a first-gen student with a 3.4 GPA in Texas. What scholarships can I apply for?",
+    "What scholarships exist specifically for first-gen students studying STEM?",
     "I need help finding scholarships with deadlines in the next 3 months.",
     "What are the biggest HBCU scholarships I should know about?",
   ],
@@ -38,16 +40,38 @@ const FEATURE_META = {
   roadmap:      { title: "College Roadmap",      icon: "🗺️", color: "var(--green-light)" },
 };
 
+const SAVED_KEY = "legacy_saved_scholarships";
+
 export default function ChatPage({ feature }) {
   const navigate = useNavigate();
   const [input, setInput] = useState("");
   const [image, setImage] = useState(null);
+  const [scholarships, setScholarships] = useState([]);
   const bottomRef = useRef(null);
   const fileRef = useRef(null);
   const meta = FEATURE_META[feature];
   const starters = STARTERS[feature] ?? [];
 
-  const { messages, isLoading, error, recommendations, sendMessage, clearMessages } = useClaude({ feature });
+  const { profile } = useProfile();
+
+  const handleScholarships = useCallback((results) => {
+    setScholarships((prev) => [...prev, ...results]);
+  }, []);
+
+  const saveScholarship = useCallback((scholarship) => {
+    try {
+      const existing = JSON.parse(localStorage.getItem(SAVED_KEY) || "[]");
+      if (!existing.some((s) => s.name === scholarship.name)) {
+        localStorage.setItem(SAVED_KEY, JSON.stringify([...existing, scholarship]));
+      }
+    } catch {}
+  }, []);
+
+  const { messages, isLoading, error, recommendations, sendMessage, clearMessages } = useClaude({
+    feature,
+    profile,
+    onScholarships: feature === "scholarships" ? handleScholarships : null,
+  });
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -167,6 +191,15 @@ export default function ChatPage({ feature }) {
           )}
 
           {error && <div className={styles.error}>⚠ {error}</div>}
+
+          {scholarships.length > 0 && (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 12, marginTop: 8 }}>
+              {scholarships.map((s, i) => (
+                <ScholarshipCard key={s.name + i} scholarship={s} onSave={saveScholarship} />
+              ))}
+            </div>
+          )}
+
           <div ref={bottomRef} />
         </div>
 
