@@ -11,4 +11,5 @@ vite/
 .DS_Store
 Thumbs.db
 
-.log npm-debug.log
+*.log 
+npm-debug.log*
