@@ -124,6 +124,18 @@ export default function ChatPage({ feature }) {
           </div>
         )}
 
+        {/* Scholarship matches */}
+        {scholarships.length > 0 && (
+          <div className={styles.recs}>
+            <p className={styles.recsLabel}>Matches found</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {scholarships.map((s, i) => (
+                <ScholarshipCard key={s.name + i} scholarship={s} onSave={saveScholarship} />
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Image upload */}
         <div className={styles.uploadSection}>
           <p className={styles.uploadLabel}>Upload a document or image</p>
@@ -191,15 +203,6 @@ export default function ChatPage({ feature }) {
           )}
 
           {error && <div className={styles.error}>⚠ {error}</div>}
-
-          {scholarships.length > 0 && (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 12, marginTop: 8 }}>
-              {scholarships.map((s, i) => (
-                <ScholarshipCard key={s.name + i} scholarship={s} onSave={saveScholarship} />
-              ))}
-            </div>
-          )}
-
           <div ref={bottomRef} />
         </div>
 
