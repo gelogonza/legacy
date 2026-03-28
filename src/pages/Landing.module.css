@@ -80,13 +80,13 @@
 .headlinei {
   font-family: "Playfair Display", serif;
   font-style: italic;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .subtext {
   font-size: 17px;
   line-height: 1.65;
-  color: rgba(255, 255, 255, 0.62);
+  color: rgba(255, 255, 255);
   max-width: 480px;
   margin: 0 0 40px;
   opacity: 0;
@@ -104,26 +104,26 @@
 }
 
 .ctaPrimary {
-  background: var(--orange);
+  background-color: white;
   border: none;
   border-radius: var(--radius-md);
   padding: 14px 26px;
   font-size: 14px;
   font-weight: 500;
-  color: #fff;
+  color: black;
   cursor: pointer;
   transition: opacity 0.15s, transform 0.1s;
 }
 .ctaPrimary:hover { opacity: 0.88; transform: translateY(-1px); }
 
 .ctaSecondary {
-  background: rgba(255, 255, 255, 0.08);
+  background: white;
   border: 0.5px solid rgba(255, 255, 255, 0.3);
   border-radius: var(--radius-md);
   padding: 14px 26px;
   font-size: 14px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.8);
+  color: black;
   cursor: pointer;
   transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
