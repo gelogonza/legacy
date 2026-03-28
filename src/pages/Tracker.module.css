@@ -1,0 +1,108 @@
+/* ── Page ─────────────────────────────────────────────────────────────────── */
+.page {
+  min-height: 100vh;
+  background: linear-gradient(to bottom, #90e0ef, #0077b6);
+  padding: 40px;
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 40px;
+}
+
+.backBtn {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 13px;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.backBtn:hover {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 700;
+  color: #fff;
+}
+
+/* ── Grid ────────────────────────────────────────────────────────────────── */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+  max-width: 960px;
+}
+
+.cardWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ── Status toggle ───────────────────────────────────────────────────────── */
+.statusBtn {
+  border: none;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 14px;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.15s;
+}
+
+.statusNotStarted {
+  background: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.statusInProgress {
+  background: rgba(217, 119, 6, 0.2);
+  color: #fbbf24;
+}
+
+.statusSubmitted {
+  background: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+}
+
+/* ── Empty state ─────────────────────────────────────────────────────────── */
+.empty {
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.75);
+  line-height: 1.6;
+  max-width: 480px;
+}
+
+.emptyLink {
+  display: inline-block;
+  margin-top: 16px;
+  background: rgba(255, 255, 255, 0.95);
+  color: #0077b6;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 20px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.emptyLink:hover {
+  opacity: 0.85;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media (max-width: 700px) {
+  .page { padding: 24px 20px; }
+  .grid { grid-template-columns: 1fr; }
+}
