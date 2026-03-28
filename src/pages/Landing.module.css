@@ -39,13 +39,33 @@
   background-clip: text;
 }
 
-.trackBadge {
-  font-size: 11px;
-  padding: 5px 14px;
-  border-radius: var(--radius-pill);
-  border: 0.5px solid rgba(0, 119, 182, 0.4);
-  background: rgba(0, 119, 182, 0.08);
-  color: var(--orange);
+.navLinks {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.navLink {
+  position: relative;
+  font-size: 13px;
+  color: #fff;
+  cursor: pointer;
+  padding-bottom: 2px;
+}
+
+.navLink::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 0;
+  height: 1px;
+  background: #fff;
+  transition: width 0.25s ease;
+}
+
+.navLink:hover::after {
+  width: 100%;
 }
 
 /* ── Hero content ─────────────────────────────────────────────────────────── */
