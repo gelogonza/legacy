@@ -192,7 +192,7 @@ describe("Landing page", () => {
   // ── Stats ───────────────────────────────────────────────────────────────
   it("renders stats section", () => {
     renderLanding();
-    expect(screen.getAllByText("$7B+").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("~$100M").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("1 in 4").length).toBeGreaterThanOrEqual(1);
   });
 

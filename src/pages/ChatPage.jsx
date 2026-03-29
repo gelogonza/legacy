@@ -155,7 +155,7 @@ export default function ChatPage({ feature }) {
 
   const saveScholarship = useCallback(async (scholarship) => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) return false;
 
     const { data: existing } = await supabase
       .from("saved_scholarships")
@@ -164,7 +164,7 @@ export default function ChatPage({ feature }) {
       .eq("name", scholarship.name)
       .maybeSingle();
 
-    if (existing) return;
+    if (existing) return true; // already saved — treat as success
 
     const { error } = await supabase.from("saved_scholarships").insert({
       user_id: user.id,
@@ -176,7 +176,11 @@ export default function ChatPage({ feature }) {
       match_reason: scholarship.match_reason,
       status: "Not started",
     });
-    if (error) console.error("saveScholarship error:", error.message);
+    if (error) {
+      console.error("saveScholarship error:", error.message);
+      return false;
+    }
+    return true;
   }, []);
 
   const { messages, isLoading, error, recommendations, sendMessage, clearMessages } = useClaude({

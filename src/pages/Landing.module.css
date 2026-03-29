@@ -491,9 +491,34 @@
   position: relative;
   z-index: 1;
   padding: 80px 40px 100px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.featuresGrid {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-image:
+    linear-gradient(to right, #e7e5e4 1px, transparent 1px),
+    linear-gradient(to bottom, #e7e5e4 1px, transparent 1px);
+  background-size: 20px 20px;
+  mask-image:
+    repeating-linear-gradient(to right, black 0px, black 3px, transparent 3px, transparent 8px),
+    repeating-linear-gradient(to bottom, black 0px, black 3px, transparent 3px, transparent 8px),
+    radial-gradient(ellipse 70% 60% at 50% 0%, #000 60%, transparent 100%);
+  -webkit-mask-image:
+    repeating-linear-gradient(to right, black 0px, black 3px, transparent 3px, transparent 8px),
+    repeating-linear-gradient(to bottom, black 0px, black 3px, transparent 3px, transparent 8px),
+    radial-gradient(ellipse 70% 60% at 50% 0%, #000 60%, transparent 100%);
+  mask-composite: intersect;
+  -webkit-mask-composite: source-in;
+  pointer-events: none;
 }
 
 .featuresSectionHeader {
+  position: relative;
+  z-index: 1;
   text-align: center;
   max-width: 640px;
   margin: 0 auto 64px;
@@ -513,6 +538,8 @@
 }
 
 .featuresDeepGrid {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 20px;
@@ -520,21 +547,29 @@
   margin: 0 auto;
 }
 
+.featuresDeepSection .featuresSectionHeader .eyebrow {
+  color: rgba(0, 0, 0, 0.4);
+}
+
+.featuresDeepSection .featuresSectionHeader .sectionHeadline {
+  color: #111;
+}
+
 .featureDeepCard {
-  background: rgba(255,255,255,0.03);
-  border: 0.5px solid rgba(255,255,255,0.08);
+  background: #fff;
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
   border-radius: 20px;
   padding: 32px 28px;
   display: flex;
   flex-direction: column;
   gap: 14px;
   cursor: pointer;
-  transition: background 0.2s, border-color 0.2s, transform 0.15s;
+  transition: box-shadow 0.2s, border-color 0.2s, transform 0.15s;
 }
 
 .featureDeepCard:hover {
-  background: rgba(255,255,255,0.055);
-  border-color: rgba(255,255,255,0.14);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border-color: rgba(0, 0, 0, 0.14);
   transform: translateY(-3px);
 }
 
@@ -567,13 +602,13 @@
   font-family: var(--font-display);
   font-size: 18px;
   font-weight: 700;
-  color: #fff;
+  color: #111;
   margin: 0;
 }
 
 .featureDeepDesc {
   font-size: 13px;
-  color: rgba(255,255,255,0.5);
+  color: rgba(0, 0, 0, 0.5);
   line-height: 1.7;
   margin: 0;
   flex: 1;
@@ -590,7 +625,7 @@
 
 .featureDeepBullet {
   font-size: 12px;
-  color: rgba(255,255,255,0.55);
+  color: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: flex-start;
   gap: 8px;

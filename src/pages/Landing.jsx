@@ -403,6 +403,7 @@ export default function Landing() {
 
       {/* ── Section 3: Feature deep-dives ── */}
       <section id="features" className={styles.featuresDeepSection}>
+        <div className={styles.featuresGrid} />
         <div className={styles.featuresSectionHeader}>
           <p className={styles.eyebrow}>Six tools. One mission.</p>
           <h2 className={styles.sectionHeadline}>
