@@ -1,3 +1,4 @@
+import { useState } from "react";
 import styles from "./ScholarshipCard.module.css";
 
 function deadlineBadge(deadline) {
@@ -14,6 +15,24 @@ function deadlineBadge(deadline) {
 
 export default function ScholarshipCard({ scholarship, onSave, onRemove, showSave = true }) {
   const badge = deadlineBadge(scholarship.deadline);
+  const [saveState, setSaveState] = useState("idle"); // idle | saving | saved | error
+
+  const handleSave = async () => {
+    if (saveState === "saving" || saveState === "saved") return;
+    setSaveState("saving");
+    try {
+      const result = await onSave(scholarship);
+      if (result === false) {
+        setSaveState("error");
+        setTimeout(() => setSaveState("idle"), 2000);
+      } else {
+        setSaveState("saved");
+      }
+    } catch {
+      setSaveState("error");
+      setTimeout(() => setSaveState("idle"), 2000);
+    }
+  };
 
   return (
     <div className={styles.card}>
@@ -50,8 +69,15 @@ export default function ScholarshipCard({ scholarship, onSave, onRemove, showSav
         )}
 
         {showSave && onSave && (
-          <button className={styles.saveBtn} onClick={() => onSave(scholarship)}>
-            Save
+          <button
+            className={`${styles.saveBtn} ${saveState === "saved" ? styles.saveBtnSaved : ""} ${saveState === "error" ? styles.saveBtnError : ""}`}
+            onClick={handleSave}
+            disabled={saveState === "saving" || saveState === "saved"}
+          >
+            {saveState === "idle" && "Save"}
+            {saveState === "saving" && "Saving…"}
+            {saveState === "saved" && "Saved ✓"}
+            {saveState === "error" && "Failed"}
           </button>
         )}
 
