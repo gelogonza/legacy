@@ -1,8 +1,8 @@
 import { useState, useCallback } from "react";
 
-const MODEL = "claude-sonnet-4-20250514";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 
-// ── System prompts per feature ────────────────────────────────────────────────
+// ── System prompts per feature (kept for tests — backend holds the canonical copy) ──
 export const SYSTEM_PROMPTS = {
   scholarships: `You are Legacy's scholarship advisor — a warm, knowledgeable guide built specifically
 for first-generation, low-income college students. Your job is to help students discover scholarships
@@ -140,55 +140,54 @@ export function useClaude({ feature = "scholarships", profile = null, onScholars
   const [error, setError] = useState(null);
   const [recommendations, setRecommendations] = useState([]);
 
-  const basePrompt = SYSTEM_PROMPTS[feature] ?? SYSTEM_PROMPTS.scholarships;
-  const systemPrompt = buildProfileContext(profile) + basePrompt;
-
   const sendMessage = useCallback(
     async (userText, attachment = null) => {
       if (!userText.trim() && !attachment) return;
       setIsLoading(true);
       setError(null);
 
-      let userContent = userText;
-      if (attachment) {
-        const contentBlock =
-          attachment.type === "pdf"
-            ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: attachment.data } }
-            : { type: "image", source: { type: "base64", media_type: attachment.mediaType || "image/jpeg", data: attachment.data } };
-        userContent = [
-          contentBlock,
-          { type: "text", text: userText || (attachment.type === "pdf" ? "Please analyze this document." : "Please analyze this image.") },
-        ];
-      }
+      const userContent = attachment
+        ? `${userText || (attachment.type === "pdf" ? "Please analyze this document." : "Please analyze this image.")} [Attached ${attachment.type}: ${attachment.name || "file"}]`
+        : userText;
 
       const newMsg = { role: "user", content: userContent };
       const history = [...messages, newMsg];
       setMessages(history);
 
       try {
-        const res = await fetch("https://api.anthropic.com/v1/messages", {
+        const res = await fetch(`${API_BASE}/api/chat`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-api-key": import.meta.env.VITE_ANTHROPIC_KEY,
-            "anthropic-version": "2023-06-01",
-            "anthropic-dangerous-direct-browser-access": "true",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: MODEL,
-            max_tokens: 1000,
-            system: systemPrompt,
-            messages: history,
+            feature,
+            userType: profile?.profileType || "general",
+            message: userContent,
+            history: messages.map((m) => ({
+              role: m.role,
+              content: typeof m.content === "string" ? m.content : "[attachment]",
+            })),
+            profile: profile
+              ? {
+                  name: profile.name,
+                  grade: profile.grade,
+                  gpa: profile.gpa,
+                  state: profile.state,
+                  majorInterest: profile.majorInterest,
+                  firstGen: profile.firstGen,
+                  householdIncome: profile.householdIncome,
+                  notes: profile.notes,
+                }
+              : null,
           }),
         });
 
         if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.error?.message ?? "API error");
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.message || `Server error (${res.status})`);
         }
 
         const data = await res.json();
-        const text = data.content?.[0]?.text ?? "";
+        const text = data.text ?? "";
 
         // Parse structured scholarships
         const scholarshipMatch = text.match(/<scholarships>([\s\S]*?)<\/scholarships>/);
@@ -212,15 +211,17 @@ export function useClaude({ feature = "scholarships", profile = null, onScholars
 
         setMessages((prev) => [...prev, { role: "assistant", content: finalText }]);
 
-        // Extract action items silently
-        extractRecommendations(finalText, setRecommendations);
+        // Use server-side recommendations if available
+        if (data.recommendations?.length > 0) {
+          setRecommendations(data.recommendations);
+        }
       } catch (err) {
         setError(err.message);
       } finally {
         setIsLoading(false);
       }
     },
-    [messages, systemPrompt, onScholarships, onRoadmap]
+    [messages, feature, profile, onScholarships, onRoadmap]
   );
 
   const clearMessages = useCallback(() => {
@@ -229,39 +230,4 @@ export function useClaude({ feature = "scholarships", profile = null, onScholars
   }, []);
 
   return { messages, isLoading, error, recommendations, sendMessage, clearMessages };
-}
-
-// ── Recommendation extractor ──────────────────────────────────────────────────
-async function extractRecommendations(text, setter) {
-  if (text.length < 80) return;
-  try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": import.meta.env.VITE_ANTHROPIC_KEY,
-        "anthropic-version": "2023-06-01",
-        "anthropic-dangerous-direct-browser-access": "true",
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 400,
-        system: "Extract action items from text. Respond ONLY with valid JSON, no markdown backticks.",
-        messages: [{
-          role: "user",
-          content: `Extract up to 3 concrete next steps as JSON:
-{"items":[{"title":"...","detail":"...","type":"deadline|resource|action"}]}
-If none, return {"items":[]}.
-
-Text: ${text}`,
-        }],
-      }),
-    });
-    const data = await res.json();
-    const raw = data.content?.[0]?.text ?? "{}";
-    const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
-    if (parsed.items?.length > 0) setter(parsed.items);
-  } catch {
-    // silent fail — recs are bonus
-  }
 }
