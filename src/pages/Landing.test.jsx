@@ -9,6 +9,32 @@ vi.mock("react-router-dom", async () => {
   return { ...actual, useNavigate: () => mockNavigate };
 });
 
+// useProfile is now async (Supabase). Mock it to read from localStorage
+// synchronously so existing tests keep working without changes.
+vi.mock("../hooks/useProfile", async () => {
+  const actual = await vi.importActual("../hooks/useProfile");
+  return {
+    ...actual,
+    useProfile: () => {
+      let profile = actual.EMPTY_PROFILE;
+      try {
+        const saved = localStorage.getItem("legacy_profile");
+        if (saved) profile = JSON.parse(saved);
+      } catch {}
+      const isProfileComplete = !!(
+        profile.profileType && profile.name && profile.grade && profile.state
+      );
+      return {
+        profile,
+        updateProfile: vi.fn(),
+        clearProfile: vi.fn(),
+        isProfileComplete,
+        loading: false,
+      };
+    },
+  };
+});
+
 function renderLanding() {
   return render(
     <MemoryRouter>
@@ -155,7 +181,7 @@ describe("Landing page", () => {
   it("renders stats section", () => {
     renderLanding();
     expect(screen.getByText("$7B+")).toBeInTheDocument();
-    expect(screen.getByText("1 in 3")).toBeInTheDocument();
+    expect(screen.getByText("1 in 4")).toBeInTheDocument();
     expect(screen.getByText("Free")).toBeInTheDocument();
   });
 

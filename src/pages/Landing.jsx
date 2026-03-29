@@ -37,7 +37,7 @@ const FEATURES = [
 
 const STATS = [
   { num: "$7B+", label: "Scholarships unclaimed yearly" },
-  { num: "1 in 3", label: "of college students are first-gen" },
+  { num: "1 in 4", label: "of college students are first-gen" },
   { num: "Free", label: "Always, for students" },
 ];
 
@@ -68,7 +68,7 @@ function buildBannerText(profile) {
 
 export default function Landing() {
   const navigate = useNavigate();
-  const { profile, isProfileComplete } = useProfile();
+  const { profile, isProfileComplete, loading } = useProfile();
   const revealRefs = useRef([]);
   const cta = CTA_MAP[profile.profileType] || CTA_MAP.highschool;
 
@@ -107,14 +107,15 @@ export default function Landing() {
             <span className={styles.logoText}>Legacy</span>
           </div>
           <div className={styles.navLinks}>
-            {isProfileComplete ? (
+            {!loading && isProfileComplete && (
               <div className={styles.avatarPill} onClick={() => navigate("/profile")}>
                 <div className={styles.avatarCircle}>
                   {profile.name.charAt(0).toUpperCase()}
                 </div>
                 <span className={styles.avatarName}>{profile.name}</span>
               </div>
-            ) : (
+            )}
+            {!loading && !isProfileComplete && (
               <span className={styles.navLink} onClick={() => navigate("/profile")}>
                 Get started →
               </span>
@@ -125,56 +126,70 @@ export default function Landing() {
           </div>
         </nav>
 
-        <div className={styles.heroContent}>
-          {isProfileComplete && (
-            <div className={styles.profileBanner}>
-              {buildBannerText(profile)}
-            </div>
-          )}
+        {loading ? (
+          <div className={styles.heroContent}>
+            <div style={{ width: 320, height: 72, background: "rgba(255,255,255,0.12)",
+                          borderRadius: 6, marginBottom: 24,
+                          animation: "pulse 1.8s ease-in-out infinite" }} />
+            <div style={{ width: 240, height: 20, background: "rgba(255,255,255,0.08)",
+                          borderRadius: 6, marginBottom: 40,
+                          animation: "pulse 1.8s ease-in-out infinite" }} />
+            <div style={{ width: 180, height: 48, background: "rgba(255,255,255,0.1)",
+                          borderRadius: 10,
+                          animation: "pulse 1.8s ease-in-out infinite" }} />
+          </div>
+        ) : (
+          <div className={styles.heroContent}>
+            {isProfileComplete && (
+              <div className={styles.profileBanner}>
+                {buildBannerText(profile)}
+              </div>
+            )}
 
-          {isProfileComplete ? (
-            <h1 className={styles.headline}>
-              Welcome back, {profile.name}.
-            </h1>
-          ) : (
-            <h1 className={styles.headline}>
-              Create your{" "}
-              <i className={styles.headlinei}>Legacy</i>
-            </h1>
-          )}
-
-          <p className={styles.subtext}>
-            {isProfileComplete
-              ? "Pick up where you left off."
-              : "The AI-powered college guide built for first-generation, low-income students."}
-          </p>
-
-          <div className={styles.ctaRow}>
             {isProfileComplete ? (
-              <button
-                className={styles.ctaPrimary}
-                onClick={() => navigate(cta.route)}
-              >
-                {cta.text}
-              </button>
+              <h1 className={styles.headline}>
+                Welcome back, {profile.name}.
+              </h1>
             ) : (
-              <>
+              <h1 className={styles.headline}>
+                Create your{" "}
+                <i className={styles.headlinei}>Legacy</i>
+              </h1>
+            )}
+
+            <p className={styles.subtext}>
+              {isProfileComplete
+                ? "Pick up where you left off."
+                : "The AI-powered college guide built for first-generation, low-income students."}
+            </p>
+
+            <div className={styles.ctaRow}>
+              {isProfileComplete ? (
                 <button
                   className={styles.ctaPrimary}
-                  onClick={() => navigate("/scholarships")}
+                  onClick={() => navigate(cta.route)}
                 >
-                  Find my scholarships →
+                  {cta.text}
                 </button>
-                <button
-                  className={styles.ctaSecondary}
-                  onClick={() => navigate("/profile")}
-                >
-                  Set up my profile →
-                </button>
-              </>
-            )}
+              ) : (
+                <>
+                  <button
+                    className={styles.ctaPrimary}
+                    onClick={() => navigate("/scholarships")}
+                  >
+                    Find my scholarships →
+                  </button>
+                  <button
+                    className={styles.ctaSecondary}
+                    onClick={() => navigate("/profile")}
+                  >
+                    Set up my profile →
+                  </button>
+                </>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         <div className={styles.scrollHint}>Scroll to explore ↓</div>
       </section>
