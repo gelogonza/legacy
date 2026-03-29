@@ -73,3 +73,14 @@ All colors in `tokens.css` — sky blue palette:
 ```
 
 Fonts: Geist (display + body), Playfair Display (hero italic accent).
+
+---
+
+## Judging Criteria Alignment
+
+| Criterion | How Legacy addresses it |
+|---|---|
+| **Impact Potential (25pts)** | Specific population (first-gen Black students), real problem ($7B unclaimed scholarships) |
+| **Technical Execution (30pts)** | 4 working AI features, image upload, conversation history, structured rec extraction |
+| **Ethical Alignment (25pts)** | Empowers users with information, never makes decisions for them, culturally aware prompts |
+| **Presentation (20pts)** | Stats-led pitch opening, clear demo path through all 4 features |
