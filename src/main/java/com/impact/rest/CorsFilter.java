@@ -14,7 +14,9 @@ public class CorsFilter implements ContainerResponseFilter {
         if (origin != null && (
             origin.equals("http://localhost:3000") ||
             origin.equals("http://localhost:5173") ||
-            origin.equals("https://legacy-cyan.vercel.app")
+            origin.equals("https://legacy-cyan.vercel.app") ||
+            origin.equals("https://trylegacy.tech") ||
+            origin.equals("https://www.trylegacy.tech")
         )) {
             response.getHeaders().putSingle("Access-Control-Allow-Origin", origin);
             response.getHeaders().putSingle("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
