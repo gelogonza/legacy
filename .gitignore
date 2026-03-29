@@ -1,3 +1,4 @@
+HEAD
 #Maven
 target/
 pom.xml.tag
@@ -43,3 +44,19 @@ nb-configuration.xml
 /.quarkus/cli/plugins/
 # TLS Certificates
 .certs/
+
+.env
+.env.local
+.env.*.local
+node_modules/
+
+dist/
+build/
+vite/
+.vscode/settings.json
+.idea/
+.DS_Store
+Thumbs.db
+
+.log npm-debug.log
+96590775790dc33a7edee8f8deccd13f464bb648
