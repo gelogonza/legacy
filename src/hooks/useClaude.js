@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 
-export const SYSTEM_PROMPTS = {}; // prompts now live server-side
+export const SYSTEM_PROMPTS = {}; // prompts now live server-side in FeatureType.java
 
 function getUserType(profile) {
   const grade = profile?.grade ?? "";
@@ -10,7 +10,7 @@ function getUserType(profile) {
   return "GENERAL";
 }
 
-export function useClaude({ feature = "scholarships", profile = null, onScholarships = null } = {}) {
+export function useClaude({ feature = "scholarships", profile = null, onScholarships = null, onRoadmap = null } = {}) {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -47,19 +47,25 @@ export function useClaude({ feature = "scholarships", profile = null, onScholars
         const data = await res.json();
         const text = data.text ?? "";
 
-        // Parse <scholarships> tags if the feature handler is listening
+        // Parse <scholarships> tags
         if (onScholarships) {
           const match = text.match(/<scholarships>([\s\S]*?)<\/scholarships>/);
           if (match) {
-            try {
-              const scholarships = JSON.parse(match[1]);
-              onScholarships(scholarships);
-            } catch {}
+            try { onScholarships(JSON.parse(match[1])); } catch {}
+          }
+        }
+
+        // Parse <roadmap> tags
+        if (onRoadmap) {
+          const match = text.match(/<roadmap>([\s\S]*?)<\/roadmap>/);
+          if (match) {
+            try { onRoadmap(JSON.parse(match[1])); } catch {}
           }
         }
 
         const displayText = text
           .replace(/<scholarships>[\s\S]*?<\/scholarships>/g, "")
+          .replace(/<roadmap>[\s\S]*?<\/roadmap>/g, "")
           .trim();
 
         setMessages((prev) => [...prev, { role: "assistant", content: displayText }]);
@@ -73,7 +79,7 @@ export function useClaude({ feature = "scholarships", profile = null, onScholars
         setIsLoading(false);
       }
     },
-    [messages, feature, profile, onScholarships]
+    [messages, feature, profile, onScholarships, onRoadmap]
   );
 
   const clearMessages = useCallback(() => {

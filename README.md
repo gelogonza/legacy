@@ -1,132 +1,296 @@
-<<<<<<< HEAD
-# navigator
-
-This project uses Quarkus, the Supersonic Subatomic Java Framework.
-
-If you want to learn more about Quarkus, please visit its website: <https://quarkus.io/>.
-
-## Running the application in dev mode
-
-You can run your application in dev mode that enables live coding using:
-
-```shell script
-./mvnw quarkus:dev
-```
-
-> **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at <http://localhost:8080/q/dev/>.
-
-## Packaging and running the application
-
-The application can be packaged using:
-
-```shell script
-./mvnw package
-```
-
-It produces the `quarkus-run.jar` file in the `target/quarkus-app/` directory.
-Be aware that it’s not an _über-jar_ as the dependencies are copied into the `target/quarkus-app/lib/` directory.
-
-The application is now runnable using `java -jar target/quarkus-app/quarkus-run.jar`.
-
-If you want to build an _über-jar_, execute the following command:
-
-```shell script
-./mvnw package -Dquarkus.package.jar.type=uber-jar
-```
-
-The application, packaged as an _über-jar_, is now runnable using `java -jar target/*-runner.jar`.
-
-## Creating a native executable
-
-You can create a native executable using:
-
-```shell script
-./mvnw package -Dnative
-```
-
-Or, if you don't have GraalVM installed, you can run the native executable build in a container using:
-
-```shell script
-./mvnw package -Dnative -Dquarkus.native.container-build=true
-```
-
-You can then execute your native executable with: `./target/navigator-1.0.0-SNAPSHOT-runner`
-
-If you want to learn more about building native executables, please consult <https://quarkus.io/guides/maven-tooling>.
-
-## Related Guides
-
-- REST ([guide](https://quarkus.io/guides/rest)): A Jakarta REST implementation utilizing build time processing and Vert.x. This extension is not compatible with the quarkus-resteasy extension, or any of the extensions that depend on it.
-- REST Jackson ([guide](https://quarkus.io/guides/rest#json-serialisation)): Jackson serialization support for Quarkus REST. This extension is not compatible with the quarkus-resteasy extension, or any of the extensions that depend on it
-- LangChain4j Anthropic ([guide](https://docs.quarkiverse.io/quarkus-langchain4j/dev/index.html)): Provides integration of Quarkus LangChain4j with Anthropic
-=======
 # Legacy — Your path to college starts here
 
-**Track 3: Economic Empowerment & Education**  
-Built for first-generation Black college students.
+An AI-powered college navigation platform built for first-generation, low-income students. Legacy helps students find scholarships, navigate FAFSA, write essays, plan their college journey, discover local resources, and explore careers.
 
 ---
 
-## Quick Start
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | React 18, Vite, React Router v6 |
+| Styling | CSS Modules, Geist font, Playfair Display |
+| Auth | Supabase Auth (email/password, implicit flow) |
+| Database | Supabase (Postgres) — `profiles`, `saved_scholarships` tables |
+| AI | Claude API (Anthropic) — direct browser calls |
+| Backend (optional) | Quarkus + LangChain4j — Java REST API with strategy-based counseling |
+| Testing | Vitest, React Testing Library |
+
+---
+
+## Prerequisites
+
+- **Node.js** 18+
+- **npm** 9+
+- A **Supabase** project with `profiles` and `saved_scholarships` tables
+- An **Anthropic API key**
+
+For the optional Java backend:
+- **Java 25** (or lower to 17 in `pom.xml`)
+- **Maven** (or use the included `./mvnw` wrapper)
+
+---
+
+## Setup
+
+### 1. Clone and install
 
 ```bash
+git clone https://github.com/gelogonza/legacy.git
+cd legacy
 npm install
-npm run dev   # → http://localhost:3000
 ```
 
-Requires an Anthropic API key. The app calls `https://api.anthropic.com/v1/messages` directly.
+### 2. Environment variables
+
+Copy the example env file and fill in your keys:
+
+```bash
+cp .env.example .env
+```
+
+Your `.env` needs three values:
+
+```
+VITE_ANTHROPIC_KEY=sk-ant-api03-...
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGci...
+```
+
+| Variable | Where to find it |
+|---|---|
+| `VITE_ANTHROPIC_KEY` | [console.anthropic.com](https://console.anthropic.com) > API Keys |
+| `VITE_SUPABASE_URL` | Supabase Dashboard > Settings > API > Project URL |
+| `VITE_SUPABASE_ANON_KEY` | Supabase Dashboard > Settings > API > `anon` `public` key |
+
+### 3. Supabase setup
+
+In your Supabase project:
+
+**Authentication > Providers > Email:**
+- Enable email provider
+- For development: turn OFF "Confirm email" (allows instant sign-up without email verification)
+
+**Authentication > URL Configuration:**
+- Site URL: `http://localhost:5173`
+- Redirect URLs: `http://localhost:5173/auth/callback`
+
+**Database tables** (must already exist — do not recreate if they're there):
+
+`profiles` columns:
+```
+id, user_id, name, profile_type, grade, state, gpa,
+major_interest, first_gen, household_income, notes, created_at, updated_at
+```
+
+`saved_scholarships` columns:
+```
+id, user_id, name, amount, deadline, eligibility,
+url, match_reason, status, created_at
+```
+
+### 4. Run the app
+
+```bash
+npm run dev
+```
+
+Opens at `http://localhost:5173`. You'll see the Landing page. Click **Sign up** to create an account, then fill out your profile.
+
+### 5. Run tests
+
+```bash
+npx vitest run
+```
+
+### 6. Build for production
+
+```bash
+npm run build
+```
+
+---
+
+## Optional: Java Backend (Quarkus)
+
+Jonathan's Quarkus backend provides a server-side AI counseling API with strategy-based prompts and a deadline service tool.
+
+### Setup
+
+```bash
+# Set your API key
+export ANTHROPIC_API_KEY=sk-ant-api03-...
+
+# Run the backend (requires Java 25)
+./mvnw quarkus:dev
+```
+
+The backend runs on `http://localhost:8080` with a single endpoint:
+
+```
+POST /chat
+Content-Type: application/json
+
+{
+  "userType": "HIGH_SCHOOL",
+  "message": "What scholarships can I apply for?"
+}
+```
+
+Valid `userType` values: `HIGH_SCHOOL`, `COLLEGE`, `RETURNING`, `GENERAL`
+
+> **Note:** The frontend and backend currently run independently. The frontend calls the Claude API directly from the browser. The backend is a separate service that could replace direct API calls in a production deployment.
 
 ---
 
 ## Project Structure
 
 ```
-src/
-├── App.jsx                    ← Router — all 5 routes live here
-├── tokens.css                 ← Design tokens (colors, fonts, spacing)
-├── hooks/
-│   └── useClaude.js           ← Claude API + system prompts + rec extractor
-└── pages/
-    ├── Landing.jsx            ← Home screen (matches Figma design)
-    ├── Landing.module.css
-    ├── ChatPage.jsx           ← Reusable chat UI (all 4 features use this)
-    └── ChatPage.module.css
+legacy/
+├── .env.example                         ← Template for environment variables
+├── package.json                         ← Frontend dependencies
+├── pom.xml                              ← Backend dependencies (Quarkus/Maven)
+├── vite.config.js                       ← Vite configuration
+│
+├── src/                                 ← Frontend (React)
+│   ├── main.jsx                         ← App entry point (React StrictMode)
+│   ├── App.jsx                          ← Router, ProtectedRoute, AuthCallback
+│   ├── tokens.css                       ← Design tokens (colors, fonts, radii)
+│   │
+│   ├── lib/
+│   │   └── supabase.js                  ← Supabase client (implicit auth flow)
+│   │
+│   ├── hooks/
+│   │   ├── useAuth.js                   ← Auth state (getSession, onAuthStateChange, signOut)
+│   │   ├── useProfile.js               ← Profile CRUD via Supabase (user_id)
+│   │   ├── useProfile.test.js
+│   │   ├── useClaude.js                 ← Claude API, system prompts, structured parsing
+│   │   └── useClaude.test.js
+│   │
+│   ├── components/
+│   │   ├── SkyBackground.jsx            ← Animated sky gradient with floating orbs
+│   │   ├── ScholarshipCard.jsx          ← Scholarship result card (Save/Remove)
+│   │   ├── ScholarshipCard.module.css
+│   │   ├── ScholarshipCard.test.jsx
+│   │   ├── RoadmapTimeline.jsx          ← Milestone timeline from <roadmap> JSON
+│   │   ├── RoadmapTimeline.module.css
+│   │   └── RoadmapTimeline.test.jsx
+│   │
+│   └── pages/
+│       ├── Auth.jsx                     ← Sign in / sign up (email + password)
+│       ├── Landing.jsx                  ← Public landing page (auth-aware nav)
+│       ├── Landing.module.css
+│       ├── Landing.test.jsx
+│       ├── Profile.jsx                  ← Student profile form
+│       ├── Profile.module.css
+│       ├── Profile.test.jsx
+│       ├── ChatPage.jsx                 ← Reusable chat UI (all 6 AI features)
+│       ├── ChatPage.module.css
+│       ├── Tracker.jsx                  ← Saved scholarships + status tracking
+│       ├── Tracker.module.css
+│       └── Tracker.test.jsx
+│
+└── src/main/                            ← Backend (Quarkus/Java)
+    ├── resources/
+    │   └── application.properties       ← Quarkus config (model, tokens, temperature)
+    └── java/com/impact/
+        ├── agent/
+        │   └── CounselorAgent.java      ← LangChain4j AI service (Claude)
+        ├── model/
+        │   └── UserType.java            ← Enum: HIGH_SCHOOL, COLLEGE, RETURNING, GENERAL
+        ├── rest/
+        │   ├── ChatResource.java        ← POST /chat endpoint
+        │   └── ChatRequest.java         ← Request DTO
+        ├── service/
+        │   └── DeadlineService.java     ← Tool: upcoming deadlines per user type
+        └── strategy/
+            ├── GuidanceStrategy.java    ← Strategy interface
+            ├── BaseGuidanceStrategy.java ← Base prompt + template method
+            ├── GuidanceStrategyFactory.java ← Factory: userType → strategy
+            ├── HighSchoolStrategy.java  ← ScholarTrack, dual-credit, FAFSA
+            ├── CollegeStudentStrategy.java ← Hidden curriculum, internships, mentors
+            ├── ReturningStudentStrategy.java ← Fresh Start, credit recovery
+            └── GeneralStrategy.java     ← Base guidance only
 ```
 
 ---
 
 ## Features
 
-| Route | Feature | System Prompt Focus |
+| Route | Feature | Description |
 |---|---|---|
-| `/scholarships` | Scholarship matcher | Personalized scholarship discovery |
-| `/fafsa` | FAFSA guide | Plain-language financial aid navigation |
-| `/essay` | Essay coach | Authentic college essay feedback |
-| `/roadmap` | College roadmap | Personalized college planning timeline |
+| `/` | Landing | Public marketing page with stats, feature cards, auth-aware nav |
+| `/auth` | Auth | Email/password sign up and sign in |
+| `/profile` | Profile | Student profile (type, grade, state, GPA, major, income) |
+| `/scholarships` | Scholarship Matcher | AI-powered scholarship discovery with structured cards |
+| `/fafsa` | FAFSA Guide | Plain-language financial aid navigation |
+| `/essay` | Essay Coach | College essay feedback and topic discovery |
+| `/roadmap` | College Roadmap | Personalized timeline with milestone phases |
+| `/local` | Local Opportunities | Community programs, local scholarships, regional resources |
+| `/career` | Career Advisor | Career exploration, major-to-career mapping |
+| `/tracker` | Scholarship Tracker | Saved scholarships with status cycling (Not started / In progress / Submitted) |
 
 ---
 
-## Adding a New Feature
+## Auth Flow
 
-1. Add a system prompt to `useClaude.js` → `SYSTEM_PROMPTS`
-2. Add starter prompts to `ChatPage.jsx` → `STARTERS`
-3. Add metadata to `ChatPage.jsx` → `FEATURE_META`
-4. Add a card to `Landing.jsx` → `FEATURES`
-5. Add a route to `App.jsx`
+1. Visitor lands on `/` (public Landing page)
+2. Clicks **Sign up** or any feature card → redirected to `/auth`
+3. Creates account with email + password → auto-signed in
+4. Redirected to `/` → personalized Landing with avatar pill
+5. All feature routes are protected by `ProtectedRoute`
+6. **Sign out** link in nav clears the session
+
+Auth uses Supabase Auth with implicit flow. Session persists across refreshes via Supabase's built-in token storage.
+
+---
+
+## Data Flow
+
+- **Profile** → stored in Supabase `profiles` table, keyed by `user_id` (from Supabase Auth)
+- **Saved scholarships** → stored in `saved_scholarships` table, keyed by `user_id`
+- **Chat messages** → in-memory only (not persisted)
+- **AI responses** → Claude API called directly from browser with `VITE_ANTHROPIC_KEY`
 
 ---
 
 ## Design Tokens
 
-All colors are in `tokens.css` as CSS variables:
+All tokens defined in `tokens.css` (pulled from Figma `jwlovde9rXOwTkdffZuOoj`):
 
 ```css
---orange:       #e8701a   /* Primary CTA, scholarship feature */
---green:        #2d8a45   /* FAFSA feature */
---amber:        #e8a832   /* Stats, essay feature */
---green-light:  #5ec47a   /* Pills, roadmap feature */
---bg:           #0a0a0a   /* Page background */
+/* Brand colors — teal/blue palette */
+--orange:        #0077b6   /* Primary action (Bright Teal Blue) */
+--orange-dark:   #005f92   /* Hover/pressed state */
+--orange-light:  #0096c7   /* Lighter accent (Blue Green) */
+--green:         #00b4d8   /* Secondary (Turquoise Surf) */
+--green-light:   #48cae4   /* Tertiary (Sky Aqua) */
+--amber:         #90e0ef   /* Highlight (Frosted Blue) */
+
+/* Backgrounds */
+--bg:            #020c18   /* Deep navy */
+--surface:       rgba(255, 255, 255, 0.05)
+--surface-hover: rgba(255, 255, 255, 0.09)
+
+/* Text */
+--text:          #f0ede6
+--text-70:       rgba(240, 237, 230, 0.7)
+--text-60:       rgba(240, 237, 230, 0.6)
+--text-50:       rgba(240, 237, 230, 0.5)
+--text-40:       rgba(240, 237, 230, 0.4)
+
+/* Borders */
+--border:        rgba(255, 255, 255, 0.08)
+--border-20:     rgba(255, 255, 255, 0.2)
+
+/* Spacing / Radii */
+--radius-sm:     8px
+--radius-md:     10px
+--radius-lg:     12px
+--radius-pill:   20px
 ```
+
+Fonts: **Geist** (display + body), **Playfair Display** (hero italic accent).
 
 ---
 
@@ -134,8 +298,7 @@ All colors are in `tokens.css` as CSS variables:
 
 | Criterion | How Legacy addresses it |
 |---|---|
-| **Impact Potential (25pts)** | Specific population (first-gen Black students), real problem ($7B unclaimed scholarships) |
-| **Technical Execution (30pts)** | 4 working AI features, image upload, conversation history, structured rec extraction |
+| **Impact Potential (25pts)** | Specific population (first-gen students), real problem ($7B unclaimed scholarships) |
+| **Technical Execution (30pts)** | 6 AI features, Supabase auth + database, structured output parsing, optimistic UI, 115 tests |
 | **Ethical Alignment (25pts)** | Empowers users with information, never makes decisions for them, culturally aware prompts |
-| **Presentation (20pts)** | Stats-led pitch opening, clear demo path through all 4 features |
->>>>>>> 96590775790dc33a7edee8f8deccd13f464bb648
+| **Presentation (20pts)** | Stats-led pitch opening, clear demo path through all features |
