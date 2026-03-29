@@ -1,31 +1,27 @@
 # Stage 1: Build the Quarkus app
-FROM registry.access.redhat.com/ubi9/openjdk-25:1.24 AS build
+FROM maven:3.9-eclipse-temurin-21 AS build
 
-USER root
 WORKDIR /build
 
-# Copy Maven wrapper and POM first (cache dependencies)
-COPY mvnw pom.xml ./
-COPY .mvn .mvn
-RUN chmod +x mvnw && ./mvnw dependency:go-offline -q
+# Copy POM first (cache dependencies)
+COPY pom.xml ./
+RUN mvn dependency:go-offline -q
 
 # Copy source and build
 COPY src/main src/main
-RUN ./mvnw package -DskipTests -q
+RUN mvn package -DskipTests -q
 
 # Stage 2: Run
-FROM registry.access.redhat.com/ubi9/openjdk-25-runtime:1.24
+FROM eclipse-temurin:21-jre
 
-ENV LANGUAGE='en_US:en'
+WORKDIR /deployments
 
-COPY --from=build --chown=185 /build/target/quarkus-app/lib/ /deployments/lib/
-COPY --from=build --chown=185 /build/target/quarkus-app/*.jar /deployments/
-COPY --from=build --chown=185 /build/target/quarkus-app/app/ /deployments/app/
-COPY --from=build --chown=185 /build/target/quarkus-app/quarkus/ /deployments/quarkus/
+COPY --from=build /build/target/quarkus-app/lib/ lib/
+COPY --from=build /build/target/quarkus-app/*.jar ./
+COPY --from=build /build/target/quarkus-app/app/ app/
+COPY --from=build /build/target/quarkus-app/quarkus/ quarkus/
 
 EXPOSE 8080
-USER 185
-ENV JAVA_OPTS_APPEND="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager"
-ENV JAVA_APP_JAR="/deployments/quarkus-run.jar"
+ENV JAVA_OPTS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager"
 
-ENTRYPOINT [ "/opt/jboss/container/java/run/run-java.sh" ]
+CMD ["java", "-jar", "quarkus-run.jar"]
