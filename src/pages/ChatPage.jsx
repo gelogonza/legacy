@@ -2,6 +2,9 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useClaude } from "../hooks/useClaude";
 import { useProfile } from "../hooks/useProfile";
+import { useChatHistory } from "../hooks/useChatHistory";
+import { useRateLimit } from "../hooks/useRateLimit";
+import { useResources } from "../hooks/useResources";
 import ScholarshipCard from "../components/ScholarshipCard";
 import RoadmapTimeline from "../components/RoadmapTimeline";
 import { supabase } from "../lib/supabase";
@@ -63,12 +66,24 @@ export default function ChatPage({ feature }) {
   const [scholarships, setScholarships] = useState([]);
   const [roadmapMilestones, setRoadmapMilestones] = useState([]);
   const [autoStarted, setAutoStarted] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 640);
+  const [featureSwitcher, setFeatureSwitcher] = useState(false);
   const bottomRef = useRef(null);
   const fileRef = useRef(null);
   const meta = FEATURE_META[feature];
   const starters = STARTERS[feature] ?? [];
 
   const { profile, isProfileComplete } = useProfile();
+  const { savedMessages, historyLoading, saveMessage, startNewSession } = useChatHistory(feature);
+  const { remaining, isLimited, increment } = useRateLimit();
+  const { resources } = useResources(feature);
+
+  // Track mobile viewport
+  useEffect(() => {
+    const fn = () => setIsMobile(window.innerWidth <= 640);
+    window.addEventListener("resize", fn);
+    return () => window.removeEventListener("resize", fn);
+  }, []);
 
   const handleScholarships = useCallback((results) => {
     setScholarships((prev) => [...prev, ...results]);
@@ -109,6 +124,8 @@ export default function ChatPage({ feature }) {
     profile,
     onScholarships: feature === "scholarships" ? handleScholarships : null,
     onRoadmap: feature === "roadmap" ? handleRoadmap : null,
+    initialMessages: historyLoading ? null : savedMessages,
+    onMessageSaved: saveMessage,
   });
 
   // Auto-send personalized opening message on mount
@@ -136,7 +153,9 @@ export default function ChatPage({ feature }) {
 
   const handleSend = async (text = input) => {
     if (!text.trim() && !attachment) return;
+    if (isLimited) return;
     setInput("");
+    await increment();
     await sendMessage(text.trim(), attachment);
     setAttachment(null);
   };
@@ -202,8 +221,8 @@ export default function ChatPage({ feature }) {
           </div>
         )}
 
-        {/* Scholarship matches */}
-        {scholarships.length > 0 && (
+        {/* Scholarship matches — desktop only */}
+        {scholarships.length > 0 && !isMobile && (
           <div className={styles.recs}>
             <p className={styles.recsLabel}>Matches found</p>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -235,8 +254,75 @@ export default function ChatPage({ feature }) {
           {attachment && <p className={styles.imageReady}>✓ Ready — ask a question to analyze</p>}
         </div>
 
+        {/* Curated resources */}
+        {resources.length > 0 && (
+          <div className={styles.recs}>
+            <p className={styles.recsLabel}>Helpful resources</p>
+            {resources.slice(0, 4).map((r) => (
+              <a
+                key={r.id}
+                href={r.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 2,
+                  padding: "10px 12px",
+                  background: "var(--surface)",
+                  borderRadius: 8,
+                  border: "0.5px solid var(--border)",
+                  textDecoration: "none",
+                }}
+              >
+                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text)" }}>
+                  {r.is_featured ? "⭐ " : ""}{r.title}
+                </span>
+                {r.description && (
+                  <span style={{ fontSize: 11, color: "var(--text-40)", lineHeight: 1.4 }}>
+                    {r.description}
+                  </span>
+                )}
+              </a>
+            ))}
+          </div>
+        )}
+
+        {/* Switch feature — Part 7 */}
+        <div className={styles.recs}>
+          <p className={styles.recsLabel}>Other tools</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            {Object.entries(FEATURE_META)
+              .filter(([key]) => key !== feature)
+              .map(([key, m]) => (
+                <button
+                  key={key}
+                  onClick={() => navigate(`/${key}`)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "8px 10px",
+                    background: "transparent",
+                    border: "0.5px solid var(--border)",
+                    borderRadius: 8,
+                    color: "var(--text-60)",
+                    fontSize: 12,
+                    textAlign: "left",
+                    cursor: "pointer",
+                    transition: "border-color 0.15s, color 0.15s",
+                  }}
+                >
+                  <span>{m.icon}</span>
+                  <span>{m.title}</span>
+                </button>
+              ))
+            }
+          </div>
+        </div>
+
         {messages.length > 0 && (
-          <button className={styles.clearBtn} onClick={clearMessages}>Clear conversation</button>
+          <button className={styles.clearBtn} onClick={() => { clearMessages(); startNewSession(); }}>Clear conversation</button>
         )}
       </aside>
 
@@ -296,6 +382,15 @@ export default function ChatPage({ feature }) {
             <RoadmapTimeline milestones={roadmapMilestones} />
           )}
 
+          {/* Mobile inline scholarship cards */}
+          {scholarships.length > 0 && isMobile && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%" }}>
+              {scholarships.map((s, i) => (
+                <ScholarshipCard key={s.name + i} scholarship={s} onSave={saveScholarship} />
+              ))}
+            </div>
+          )}
+
           <div ref={bottomRef} />
         </div>
 
@@ -322,14 +417,82 @@ export default function ChatPage({ feature }) {
             <button
               className={styles.sendBtn}
               onClick={() => handleSend()}
-              disabled={isLoading || (!input.trim() && !attachment)}
+              disabled={isLoading || isLimited || (!input.trim() && !attachment)}
               style={{ background: meta.color }}
             >
               {isLoading ? "…" : "Send"}
             </button>
           </div>
+          {remaining <= 5 && remaining > 0 && (
+            <p style={{ fontSize: 11, color: "rgba(240,100,100,0.8)", margin: "4px 0 0" }}>
+              {remaining} message{remaining !== 1 ? "s" : ""} remaining today
+            </p>
+          )}
+          {isLimited && (
+            <p style={{ fontSize: 12, color: "rgba(240,100,100,0.9)", margin: "4px 0 0" }}>
+              You&apos;ve reached your 20 message limit for today. Come back tomorrow.
+            </p>
+          )}
         </div>
       </main>
+
+      {/* Mobile bottom nav — Part 5 */}
+      {isMobile && (
+        <nav className={styles.mobileNav}>
+          <button className={styles.mobileNavBtn} onClick={() => navigate("/")}>
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <path d="M13 16L7 10L13 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span>Back</span>
+          </button>
+          <button className={`${styles.mobileNavBtn} ${styles.mobileNavActive}`}>
+            <span style={{ fontSize: 18 }}>{meta.icon}</span>
+            <span>{meta.title.split(" ")[0]}</span>
+          </button>
+          <button className={styles.mobileNavBtn} onClick={() => setFeatureSwitcher(true)}>
+            <span style={{ fontSize: 16 }}>☰</span>
+            <span>Tools</span>
+          </button>
+        </nav>
+      )}
+
+      {/* Feature switcher sheet — mobile */}
+      {featureSwitcher && (
+        <div className={styles.switcherOverlay} onClick={() => setFeatureSwitcher(false)}>
+          <div className={styles.switcherSheet} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>Switch tool</span>
+              <button
+                onClick={() => setFeatureSwitcher(false)}
+                style={{ background: "none", border: "none", color: "var(--text-40)", fontSize: 18, cursor: "pointer" }}
+              >✕</button>
+            </div>
+            {Object.entries(FEATURE_META).map(([key, m]) => (
+              <button
+                key={key}
+                onClick={() => { navigate(`/${key}`); setFeatureSwitcher(false); }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  width: "100%",
+                  padding: "14px 12px",
+                  background: key === feature ? "rgba(255,255,255,0.06)" : "transparent",
+                  border: "none",
+                  borderBottom: "0.5px solid var(--border)",
+                  color: key === feature ? "var(--text)" : "var(--text-60)",
+                  fontSize: 14,
+                  textAlign: "left",
+                  cursor: "pointer",
+                }}
+              >
+                <span style={{ fontSize: 18 }}>{m.icon}</span>
+                <span>{m.title}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
