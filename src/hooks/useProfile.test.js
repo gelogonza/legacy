@@ -3,6 +3,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { useProfile, EMPTY_PROFILE } from "./useProfile";
 
 // ── Supabase mock ────────────────────────────────────────────────────────────
+const mockGetUser = vi.fn().mockResolvedValue({
+  data: { user: { id: "test-user-id" } },
+});
 const mockSingle = vi.fn().mockResolvedValue({ data: null, error: null });
 const mockUpsert = vi.fn().mockResolvedValue({ error: null });
 const mockDeleteEq = vi.fn().mockResolvedValue({ error: null });
@@ -10,6 +13,9 @@ const mockDelete = vi.fn(() => ({ eq: mockDeleteEq }));
 
 vi.mock("../lib/supabase", () => ({
   supabase: {
+    auth: {
+      getUser: (...args) => mockGetUser(...args),
+    },
     from: vi.fn(() => ({
       select: vi.fn(() => ({
         eq: vi.fn(() => ({
@@ -22,13 +28,10 @@ vi.mock("../lib/supabase", () => ({
   },
 }));
 
-vi.mock("../lib/session", () => ({
-  getSessionId: vi.fn(() => "test-session-id"),
-}));
-
 describe("useProfile", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGetUser.mockResolvedValue({ data: { user: { id: "test-user-id" } } });
     mockSingle.mockResolvedValue({ data: null, error: null });
     mockUpsert.mockResolvedValue({ error: null });
     mockDeleteEq.mockResolvedValue({ error: null });
@@ -61,7 +64,7 @@ describe("useProfile", () => {
   it("reads existing profile from Supabase on mount", async () => {
     mockSingle.mockResolvedValue({
       data: {
-        session_id: "test-session-id",
+        user_id: "test-user-id",
         name: "Maria",
         profile_type: "highschool",
         grade: "11th",
@@ -93,6 +96,14 @@ describe("useProfile", () => {
     expect(result.current.profile).toEqual(EMPTY_PROFILE);
   });
 
+  it("handles no authenticated user gracefully", async () => {
+    mockGetUser.mockResolvedValue({ data: { user: null } });
+
+    const { result } = renderHook(() => useProfile());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.profile).toEqual(EMPTY_PROFILE);
+  });
+
   // ── updateProfile ───────────────────────────────────────────────────────
   it("updateProfile merges fields and calls Supabase upsert", async () => {
     const { result } = renderHook(() => useProfile());
@@ -105,31 +116,28 @@ describe("useProfile", () => {
     expect(result.current.profile.name).toBe("Alex");
     expect(result.current.profile.profileType).toBe("college");
     expect(mockUpsert).toHaveBeenCalledWith(
-      expect.objectContaining({ session_id: "test-session-id", name: "Alex", profile_type: "college" }),
-      { onConflict: "session_id" }
+      expect.objectContaining({ user_id: "test-user-id", name: "Alex", profile_type: "college" }),
+      { onConflict: "user_id" }
     );
   });
 
   it("updateProfile does optimistic update before Supabase resolves", async () => {
-    // Make upsert hang forever
     mockUpsert.mockReturnValue(new Promise(() => {}));
 
     const { result } = renderHook(() => useProfile());
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    // Don't await — fire and forget
     act(() => {
       result.current.updateProfile({ name: "Alex" });
     });
 
-    // Profile updated immediately even though upsert hasn't resolved
     expect(result.current.profile.name).toBe("Alex");
   });
 
   it("updateProfile merges without overwriting existing fields", async () => {
     mockSingle.mockResolvedValue({
       data: {
-        session_id: "test-session-id",
+        user_id: "test-user-id",
         name: "Maria",
         profile_type: "highschool",
         grade: "11th",
@@ -159,7 +167,7 @@ describe("useProfile", () => {
   it("clearProfile resets to EMPTY_PROFILE", async () => {
     mockSingle.mockResolvedValue({
       data: {
-        session_id: "test-session-id",
+        user_id: "test-user-id",
         name: "Alex",
         profile_type: "highschool",
         grade: "10th",

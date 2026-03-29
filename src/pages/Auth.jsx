@@ -15,7 +15,6 @@ export default function Auth() {
 
   useEffect(() => {
     if (user) {
-      console.log("[Auth] user already authenticated, redirecting to /");
       navigate("/", { replace: true });
     }
   }, [user, navigate]);

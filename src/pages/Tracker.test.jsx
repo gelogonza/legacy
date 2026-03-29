@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import Tracker from "./Tracker";
@@ -9,22 +9,51 @@ vi.mock("react-router-dom", async () => {
   return { ...actual, useNavigate: () => mockNavigate };
 });
 
+// ── Supabase mock ────────────────────────────────────────────────────────────
+let mockSavedData = [];
+const mockOrder = vi.fn(function () { return Promise.resolve({ data: mockSavedData, error: null }); });
+const mockSelectEq = vi.fn(function () { return { order: mockOrder }; });
+const mockSelect = vi.fn(function () { return { eq: mockSelectEq }; });
+const mockDeleteEq = vi.fn(function () { return Promise.resolve({ error: null }); });
+const mockDeleteFn = vi.fn(function () { return { eq: mockDeleteEq }; });
+const mockUpdateEq = vi.fn(function () { return Promise.resolve({ error: null }); });
+const mockUpdate = vi.fn(function () { return { eq: mockUpdateEq }; });
+
+vi.mock("../lib/supabase", () => ({
+  supabase: {
+    auth: {
+      getUser: vi.fn().mockResolvedValue({
+        data: { user: { id: "test-user-id" } },
+      }),
+    },
+    from: vi.fn(() => ({
+      select: mockSelect,
+      delete: mockDeleteFn,
+      update: mockUpdate,
+    })),
+  },
+}));
+
 const mockScholarships = [
   {
+    id: "uuid-1",
     name: "Gates Scholarship",
     amount: "$10,000",
     deadline: "2099-12-31",
     eligibility: "First-gen students",
     url: "https://example.com",
     match_reason: "GPA match",
+    status: "Not started",
   },
   {
+    id: "uuid-2",
     name: "Pell Grant Supplement",
     amount: "$5,000",
     deadline: "rolling",
     eligibility: "Low-income",
     url: "https://example.com/pell",
     match_reason: "Income match",
+    status: "Not started",
   },
 ];
 
@@ -38,49 +67,70 @@ function renderTracker() {
 
 describe("Tracker page", () => {
   beforeEach(() => {
-    localStorage.clear();
     mockNavigate.mockClear();
+    vi.clearAllMocks();
+    mockSavedData = [];
+    mockOrder.mockImplementation(() => Promise.resolve({ data: mockSavedData, error: null }));
+    mockSelectEq.mockImplementation(() => ({ order: mockOrder }));
+    mockSelect.mockImplementation(() => ({ eq: mockSelectEq }));
+    mockDeleteEq.mockImplementation(() => Promise.resolve({ error: null }));
+    mockDeleteFn.mockImplementation(() => ({ eq: mockDeleteEq }));
+    mockUpdateEq.mockImplementation(() => Promise.resolve({ error: null }));
+    mockUpdate.mockImplementation(() => ({ eq: mockUpdateEq }));
   });
 
   // ── Empty state ─────────────────────────────────────────────────────────
-  it("shows empty state when no scholarships saved", () => {
+  it("shows empty state when no scholarships saved", async () => {
     renderTracker();
-    expect(screen.getByText("No scholarships saved yet.")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("No scholarships saved yet.")).toBeInTheDocument();
+    });
   });
 
-  it("shows link to Scholarship Matcher in empty state", () => {
+  it("shows link to Scholarship Matcher in empty state", async () => {
     renderTracker();
-    expect(screen.getByText("Go to Scholarship Matcher")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("Go to Scholarship Matcher")).toBeInTheDocument();
+    });
   });
 
-  it("empty state button navigates to /scholarships", () => {
+  it("empty state button navigates to /scholarships", async () => {
     renderTracker();
+    await waitFor(() => {
+      expect(screen.getByText("Go to Scholarship Matcher")).toBeInTheDocument();
+    });
     fireEvent.click(screen.getByText("Go to Scholarship Matcher"));
     expect(mockNavigate).toHaveBeenCalledWith("/scholarships");
   });
 
   // ── With saved scholarships ─────────────────────────────────────────────
-  it("renders saved scholarships", () => {
-    localStorage.setItem("legacy_saved_scholarships", JSON.stringify(mockScholarships));
+  it("renders saved scholarships", async () => {
+    mockSavedData = [...mockScholarships];
     renderTracker();
-    expect(screen.getByText("Gates Scholarship")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("Gates Scholarship")).toBeInTheDocument();
+    });
     expect(screen.getByText("Pell Grant Supplement")).toBeInTheDocument();
   });
 
-  it("shows status toggle for each scholarship", () => {
-    localStorage.setItem("legacy_saved_scholarships", JSON.stringify(mockScholarships));
+  it("shows status toggle for each scholarship", async () => {
+    mockSavedData = [...mockScholarships];
     renderTracker();
-    const buttons = screen.getAllByText("Not started");
-    expect(buttons).toHaveLength(2);
+    await waitFor(() => {
+      const buttons = screen.getAllByText("Not started");
+      expect(buttons).toHaveLength(2);
+    });
   });
 
   // ── Status cycling ──────────────────────────────────────────────────────
-  it("cycles status: Not started → In progress → Submitted → Not started", () => {
-    localStorage.setItem("legacy_saved_scholarships", JSON.stringify([mockScholarships[0]]));
+  it("cycles status: Not started → In progress → Submitted → Not started", async () => {
+    mockSavedData = [{ ...mockScholarships[0] }];
     renderTracker();
+    await waitFor(() => {
+      expect(screen.getByText("Not started")).toBeInTheDocument();
+    });
 
-    const statusBtn = screen.getByText("Not started");
-    fireEvent.click(statusBtn);
+    fireEvent.click(screen.getByText("Not started"));
     expect(screen.getByText("In progress")).toBeInTheDocument();
 
     fireEvent.click(screen.getByText("In progress"));
@@ -90,22 +140,25 @@ describe("Tracker page", () => {
     expect(screen.getByText("Not started")).toBeInTheDocument();
   });
 
-  it("persists status changes to localStorage", () => {
-    localStorage.setItem("legacy_saved_scholarships", JSON.stringify([mockScholarships[0]]));
+  it("calls Supabase update on status change", async () => {
+    mockSavedData = [{ ...mockScholarships[0] }];
     renderTracker();
+    await waitFor(() => {
+      expect(screen.getByText("Not started")).toBeInTheDocument();
+    });
 
     fireEvent.click(screen.getByText("Not started"));
-
-    const statuses = JSON.parse(localStorage.getItem("legacy_scholarship_status"));
-    expect(statuses["Gates Scholarship"]).toBe("In progress");
+    expect(mockUpdate).toHaveBeenCalledWith({ status: "In progress" });
   });
 
   // ── Remove ──────────────────────────────────────────────────────────────
-  it("removes a scholarship when Remove is clicked", () => {
-    localStorage.setItem("legacy_saved_scholarships", JSON.stringify(mockScholarships));
+  it("removes a scholarship when Remove is clicked", async () => {
+    mockSavedData = [...mockScholarships];
     renderTracker();
+    await waitFor(() => {
+      expect(screen.getByText("Gates Scholarship")).toBeInTheDocument();
+    });
 
-    expect(screen.getByText("Gates Scholarship")).toBeInTheDocument();
     const removeButtons = screen.getAllByText("Remove");
     fireEvent.click(removeButtons[0]);
 
@@ -113,30 +166,35 @@ describe("Tracker page", () => {
     expect(screen.getByText("Pell Grant Supplement")).toBeInTheDocument();
   });
 
-  it("persists removal to localStorage", () => {
-    localStorage.setItem("legacy_saved_scholarships", JSON.stringify(mockScholarships));
+  it("calls Supabase delete on removal", async () => {
+    mockSavedData = [...mockScholarships];
     renderTracker();
+    await waitFor(() => {
+      expect(screen.getByText("Gates Scholarship")).toBeInTheDocument();
+    });
 
     fireEvent.click(screen.getAllByText("Remove")[0]);
-
-    const saved = JSON.parse(localStorage.getItem("legacy_saved_scholarships"));
-    expect(saved).toHaveLength(1);
-    expect(saved[0].name).toBe("Pell Grant Supplement");
+    expect(mockDeleteFn).toHaveBeenCalled();
   });
 
-  it("shows empty state after removing all scholarships", () => {
-    localStorage.setItem("legacy_saved_scholarships", JSON.stringify([mockScholarships[0]]));
+  it("shows empty state after removing all scholarships", async () => {
+    mockSavedData = [{ ...mockScholarships[0] }];
     renderTracker();
+    await waitFor(() => {
+      expect(screen.getByText("Gates Scholarship")).toBeInTheDocument();
+    });
 
     fireEvent.click(screen.getByText("Remove"));
     expect(screen.getByText("No scholarships saved yet.")).toBeInTheDocument();
   });
 
   // ── Navigation ──────────────────────────────────────────────────────────
-  it("back button navigates to /", () => {
+  it("back button navigates to /", async () => {
     renderTracker();
-    const backBtn = screen.getByText(/Dashboard/);
-    fireEvent.click(backBtn);
+    await waitFor(() => {
+      expect(screen.getByText(/Dashboard/)).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByText(/Dashboard/));
     expect(mockNavigate).toHaveBeenCalledWith("/");
   });
 });

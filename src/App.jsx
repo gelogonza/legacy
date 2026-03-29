@@ -10,8 +10,6 @@ import "./tokens.css";
 
 function ProtectedRoute({ children }) {
   const { user, authLoading } = useAuth();
-  console.log("[ProtectedRoute] authLoading:", authLoading, "user:", user?.email);
-
   if (authLoading) {
     return (
       <div style={{
@@ -46,7 +44,6 @@ function AuthCallback() {
     // Implicit flow: Supabase redirects here with #access_token=...
     // The Supabase client auto-detects the hash and fires onAuthStateChange.
     // We wait for authLoading to resolve, then redirect.
-    console.log("[AuthCallback] authLoading:", authLoading, "user:", user?.email);
     if (!authLoading) {
       navigate(user ? "/" : "/auth", { replace: true });
     }

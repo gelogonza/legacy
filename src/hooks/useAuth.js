@@ -7,14 +7,12 @@ export function useAuth() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      console.log("[useAuth] initial session:", data.session);
       setUser(data.session?.user ?? null);
       setAuthLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        console.log("[useAuth] auth event:", event, "user:", session?.user?.email);
         setUser(session?.user ?? null);
       }
     );

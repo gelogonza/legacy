@@ -9,8 +9,17 @@ vi.mock("react-router-dom", async () => {
   return { ...actual, useNavigate: () => mockNavigate };
 });
 
-// useProfile is now async (Supabase). Mock it to read from localStorage
-// synchronously so existing tests keep working without changes.
+// Mock useAuth — default: logged-in user
+let mockUser = { id: "test-user-id", email: "test@test.com" };
+vi.mock("../hooks/useAuth", () => ({
+  useAuth: () => ({
+    user: mockUser,
+    authLoading: false,
+    signOut: vi.fn(),
+  }),
+}));
+
+// Mock useProfile — reads from localStorage synchronously
 vi.mock("../hooks/useProfile", async () => {
   const actual = await vi.importActual("../hooks/useProfile");
   return {
@@ -59,9 +68,10 @@ describe("Landing page", () => {
   beforeEach(() => {
     localStorage.clear();
     mockNavigate.mockClear();
+    mockUser = { id: "test-user-id", email: "test@test.com" };
   });
 
-  // ── Default state (no profile) ──────────────────────────────────────────
+  // ── Default state (logged in, no profile) ──────────────────────────────
   it("shows 'Create your Legacy' when no profile", () => {
     renderLanding();
     expect(screen.getByText(/Create your/)).toBeInTheDocument();
@@ -110,7 +120,6 @@ describe("Landing page", () => {
   it("shows personalized banner with profile info", () => {
     localStorage.setItem("legacy_profile", JSON.stringify(completeProfile));
     renderLanding();
-    // Should contain state and GPA
     const banner = screen.getByText(/Texas/);
     expect(banner).toBeInTheDocument();
     expect(banner.textContent).toContain("3.4");
@@ -119,7 +128,7 @@ describe("Landing page", () => {
   it("shows avatar with first initial when profile is complete", () => {
     localStorage.setItem("legacy_profile", JSON.stringify(completeProfile));
     renderLanding();
-    expect(screen.getByText("M")).toBeInTheDocument(); // Maria's initial
+    expect(screen.getByText("M")).toBeInTheDocument();
     expect(screen.getByText("Maria")).toBeInTheDocument();
   });
 
@@ -198,5 +207,18 @@ describe("Landing page", () => {
     renderLanding();
     const banner = screen.getByText(/Texas/);
     expect(banner.textContent).not.toContain("GPA");
+  });
+
+  // ── Logged-out state ───────────────────────────────────────────────────
+  it("shows 'Sign up' nav link when not logged in", () => {
+    mockUser = null;
+    renderLanding();
+    expect(screen.getByText(/Sign up/)).toBeInTheDocument();
+  });
+
+  it("shows 'Get started free' CTA when not logged in", () => {
+    mockUser = null;
+    renderLanding();
+    expect(screen.getByText(/Get started free/)).toBeInTheDocument();
   });
 });

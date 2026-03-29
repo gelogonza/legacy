@@ -55,11 +55,7 @@ export function useProfile() {
     setProfile(merged); // optimistic update
 
     const { data: { user } } = await supabase.auth.getUser();
-    console.log("[useProfile] updateProfile user:", user?.id);
-    if (!user) {
-      console.error("[useProfile] updateProfile called with no auth user — aborting");
-      return;
-    }
+    if (!user) return;
 
     const { error } = await supabase.from("profiles").upsert(
       {

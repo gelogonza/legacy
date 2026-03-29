@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import Profile from "./Profile";
@@ -7,6 +7,33 @@ const mockNavigate = vi.fn();
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual("react-router-dom");
   return { ...actual, useNavigate: () => mockNavigate };
+});
+
+// Mock useProfile with a controllable store
+let profileStore = {};
+const mockUpdateProfile = vi.fn((fields) => {
+  profileStore = { ...profileStore, ...fields };
+  return Promise.resolve();
+});
+
+vi.mock("../hooks/useProfile", async () => {
+  const actual = await vi.importActual("../hooks/useProfile");
+  return {
+    ...actual,
+    useProfile: () => {
+      const profile = { ...actual.EMPTY_PROFILE, ...profileStore };
+      const isProfileComplete = !!(
+        profile.profileType && profile.name && profile.grade && profile.state
+      );
+      return {
+        profile,
+        updateProfile: mockUpdateProfile,
+        clearProfile: vi.fn(),
+        isProfileComplete,
+        loading: false,
+      };
+    },
+  };
 });
 
 function renderProfile() {
@@ -19,8 +46,13 @@ function renderProfile() {
 
 describe("Profile page", () => {
   beforeEach(() => {
-    localStorage.clear();
+    profileStore = {};
     mockNavigate.mockClear();
+    mockUpdateProfile.mockClear();
+    mockUpdateProfile.mockImplementation((fields) => {
+      profileStore = { ...profileStore, ...fields };
+      return Promise.resolve();
+    });
   });
 
   // ── Initial render ──────────────────────────────────────────────────────
@@ -52,9 +84,8 @@ describe("Profile page", () => {
   it("shows correct grade options for high school", () => {
     renderProfile();
     fireEvent.click(screen.getByText("High school student"));
-    const gradeSelect = screen.getAllByRole("combobox")[0]; // first select is grade
+    const gradeSelect = screen.getAllByRole("combobox")[0];
     expect(gradeSelect).toBeInTheDocument();
-    // Check that high school grades are options
     expect(screen.getByText("9th")).toBeInTheDocument();
     expect(screen.getByText("12th")).toBeInTheDocument();
   });
@@ -86,32 +117,26 @@ describe("Profile page", () => {
     renderProfile();
     fireEvent.click(screen.getByText("High school student"));
     fireEvent.change(screen.getByPlaceholderText("Your first name"), { target: { value: "Alex" } });
-    // Select state but no grade
     const selects = screen.getAllByRole("combobox");
-    const stateSelect = selects[1]; // second combobox is state
+    const stateSelect = selects[1];
     fireEvent.change(stateSelect, { target: { value: "Texas" } });
-
     expect(screen.getByText("Save & continue →")).toBeDisabled();
   });
 
   it("Save button is enabled when all required fields filled", () => {
     renderProfile();
     fireEvent.click(screen.getByText("High school student"));
-
     fireEvent.change(screen.getByPlaceholderText("Your first name"), { target: { value: "Alex" } });
-
     const selects = screen.getAllByRole("combobox");
-    fireEvent.change(selects[0], { target: { value: "11th" } });  // grade
-    fireEvent.change(selects[1], { target: { value: "Texas" } }); // state
-
+    fireEvent.change(selects[0], { target: { value: "11th" } });
+    fireEvent.change(selects[1], { target: { value: "Texas" } });
     expect(screen.getByText("Save & continue →")).not.toBeDisabled();
   });
 
   // ── Save flow ───────────────────────────────────────────────────────────
-  it("saves profile to localStorage and navigates to / on save", () => {
+  it("calls updateProfile and navigates to / on save", async () => {
     renderProfile();
     fireEvent.click(screen.getByText("High school student"));
-
     fireEvent.change(screen.getByPlaceholderText("Your first name"), { target: { value: "Maria" } });
     const selects = screen.getAllByRole("combobox");
     fireEvent.change(selects[0], { target: { value: "11th" } });
@@ -119,15 +144,20 @@ describe("Profile page", () => {
 
     fireEvent.click(screen.getByText("Save & continue →"));
 
-    // Check localStorage was written
-    const stored = JSON.parse(localStorage.getItem("legacy_profile"));
-    expect(stored.name).toBe("Maria");
-    expect(stored.profileType).toBe("highschool");
-    expect(stored.grade).toBe("11th");
-    expect(stored.state).toBe("Texas");
+    await waitFor(() => {
+      expect(mockUpdateProfile).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: "Maria",
+          profileType: "highschool",
+          grade: "11th",
+          state: "Texas",
+        })
+      );
+    });
 
-    // Check navigation
-    expect(mockNavigate).toHaveBeenCalledWith("/");
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith("/");
+    });
   });
 
   // ── Skip ────────────────────────────────────────────────────────────────
@@ -156,7 +186,7 @@ describe("Profile page", () => {
 
   // ── Edit existing profile ───────────────────────────────────────────────
   it("pre-fills form with existing profile data", () => {
-    const existing = {
+    profileStore = {
       profileType: "college",
       name: "Jordan",
       grade: "Sophomore",
@@ -167,11 +197,9 @@ describe("Profile page", () => {
       notes: "Pre-med track",
       firstGen: false,
     };
-    localStorage.setItem("legacy_profile", JSON.stringify(existing));
 
     renderProfile();
 
-    // Type should be pre-selected, form should be visible
     expect(screen.getByPlaceholderText("Your first name")).toHaveValue("Jordan");
     expect(screen.getByPlaceholderText("e.g. 3.4")).toHaveValue("3.6");
     expect(screen.getByPlaceholderText("e.g. Nursing, Computer Science")).toHaveValue("Biology");
