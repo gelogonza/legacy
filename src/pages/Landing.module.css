@@ -4,6 +4,218 @@
   min-height: 100vh;
 }
 
+/* ── Floating pill navbar ────────────────────────────────────────────────── */
+.navWrapper {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+}
+
+.navPill {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #fff;
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
+  border-radius: 100px;
+  padding: 6px 8px;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 100px;
+  font-size: 13px;
+  color: rgba(0, 0, 0, 0.8);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+  border: none;
+  background: transparent;
+  font-family: var(--font-body);
+}
+
+.navItem:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: #000;
+}
+
+.navItemIcon {
+  font-size: 14px;
+}
+
+.navDivider {
+  width: 1px;
+  height: 18px;
+  background: rgba(0, 0, 0, 0.1);
+  margin: 0 4px;
+}
+
+.navSignIn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  border-radius: 100px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  background: #0077b6;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s;
+  font-family: var(--font-body);
+  white-space: nowrap;
+}
+
+.navSignIn:hover {
+  background: #005f8f;
+}
+
+.avatarWrap {
+  position: relative;
+}
+
+.navAvatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #0077b6;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin-left: 4px;
+}
+
+.avatarMenu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: #fff;
+  border: 0.5px solid rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  padding: 4px;
+  min-width: 140px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  z-index: 110;
+  display: flex;
+  flex-direction: column;
+}
+
+.avatarMenuItem {
+  background: none;
+  border: none;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: #111;
+  text-align: left;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: background 0.12s;
+}
+
+.avatarMenuItem:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* Hamburger — desktop hidden, mobile shown */
+.navHamburger {
+  display: none;
+  background: none;
+  border: none;
+  color: rgba(0, 0, 0, 0.8);
+  cursor: pointer;
+  padding: 4px 6px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+/* Mobile dropdown menu — hidden on desktop */
+.mobileMenu {
+  display: none;
+}
+
+.mobileMenuItem {
+  background: none;
+  border: none;
+  padding: 10px 16px;
+  font-size: 14px;
+  color: #111;
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-body);
+  border-radius: 8px;
+  transition: background 0.12s;
+  width: 100%;
+}
+
+.mobileMenuItem:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.mobileMenuDivider {
+  height: 1px;
+  background: rgba(0, 0, 0, 0.08);
+  margin: 4px 12px;
+}
+
+@media (max-width: 768px) {
+  .navWrapper {
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    transform: none;
+    width: calc(100% - 24px);
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .navPill {
+    flex: 1;
+    border-radius: 100px;
+    padding: 8px 16px;
+    justify-content: space-between;
+  }
+
+  /* Hide all desktop nav items on mobile */
+  .navItem { display: none; }
+  .navDivider { display: none; }
+  .navSignIn { display: none; }
+  .avatarWrap { display: none; }
+
+  .navHamburger {
+    display: flex;
+    align-items: center;
+  }
+
+  /* Mobile dropdown menu */
+  .mobileMenu {
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border: 0.5px solid rgba(0, 0, 0, 0.08);
+    border-radius: 16px;
+    padding: 6px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    width: 100%;
+  }
+
+  .heroContent {
+    padding-top: 100px;
+  }
+}
+
 /* ── Section 1: Hero ──────────────────────────────────────────────────────── */
 .heroSection {
   position: relative;
@@ -11,135 +223,6 @@
   display: flex;
   flex-direction: column;
   z-index: 1;
-  /* no background — SkyBackground shows through */
-}
-
-/* ── Nav ──────────────────────────────────────────────────────────────────── */
-.nav {
-  position: relative;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 40px;
-  height: 64px;
-  border-bottom: 0.5px solid rgba(255, 255, 255, 0.12);
-  flex-shrink: 0;
-}
-
-.logo { display: flex; align-items: center; }
-
-.logoText {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 20px;
-  background-color: white ;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.navLinks {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-}
-
-/* Burger button — hidden on desktop */
-.burgerBtn {
-  display: none;
-  align-items: center;
-  justify-content: center;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 4px;
-  position: absolute;
-  right: 20px;
-}
-
-/* Mobile dropdown menu */
-.mobileMenu {
-  display: none;
-}
-
-@media (max-width: 768px) {
-  .navLinks { display: none !important; }
-  .burgerBtn { display: flex; }
-  .mobileMenu {
-    display: flex;
-    position: fixed;
-    top: 64px;
-    left: 0;
-    right: 0;
-    z-index: 100;
-    background: rgba(2, 12, 24, 0.96);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
-    padding: 16px 24px;
-    flex-direction: column;
-    gap: 0;
-  }
-  .mobileMenuItem {
-    padding: 16px 0;
-    border-bottom: 0.5px solid rgba(255, 255, 255, 0.08);
-    font-size: 16px;
-    color: #fff;
-    cursor: pointer;
-  }
-}
-
-.navLink {
-  position: relative;
-  font-size: 13px;
-  color: #fff;
-  cursor: pointer;
-  padding-bottom: 2px;
-}
-
-.navLink::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  width: 0;
-  height: 1px;
-  background: #fff;
-  transition: width 0.25s ease;
-}
-
-.navLink:hover::after {
-  width: 100%;
-}
-
-/* ── Avatar pill ─────────────────────────────────────────────────────────── */
-.avatarPill {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  transition: opacity 0.15s;
-}
-.avatarPill:hover { opacity: 0.8; }
-
-.avatarCircle {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: #0077b6;
-  color: #fff;
-  font-size: 14px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.avatarName {
-  font-size: 13px;
-  color: #fff;
 }
 
 /* ── Profile banner ──────────────────────────────────────────────────────── */
@@ -162,12 +245,27 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 0 24px;
+  padding: 80px 24px 0;
 }
 
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(20px); }
   to   { opacity: 1; transform: translateY(0); }
+}
+
+.heroBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.1);
+  border: 0.5px solid rgba(255,255,255,0.2);
+  border-radius: 100px;
+  padding: 6px 16px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.8);
+  margin-bottom: 20px;
+  opacity: 0;
+  animation: fadeInUp 0.7s ease-out 0s forwards;
 }
 
 .headline {
@@ -239,6 +337,15 @@
   color: #fff;
 }
 
+.heroTrust {
+  font-size: 12px;
+  color: rgba(255,255,255,0.4);
+  margin-top: 16px;
+  text-align: center;
+  opacity: 0;
+  animation: fadeInUp 0.7s ease-out 0.8s forwards;
+}
+
 /* ── Scroll hint ──────────────────────────────────────────────────────────── */
 .scrollHint {
   position: absolute;
@@ -270,57 +377,65 @@
   transform: translateY(0);
 }
 
-/* ── Section 2: Stats ─────────────────────────────────────────────────────── */
-.statsSection {
-  position: relative;
-  z-index: 1;
-  padding: 80px 40px;
+/* ── Section 2: Problem statement ─────────────────────────────────────────── */
+.problemSection {
+  position: relative; z-index: 1;
+  padding: 100px 40px;
 }
-
-.statsRow {
-  display: flex;
+.problemInner {
+  max-width: 1100px; margin: 0 auto;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 80px;
   align-items: center;
-  justify-content: center;
-  gap: 80px;
 }
-
-.statGroup {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  text-align: center;
-  position: relative;
+.problemLeft { display: flex; flex-direction: column; gap: 20px; }
+.sectionEyebrow {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase; color: #48cae4; margin: 0;
 }
-
-.statGroup:not(:last-child)::after {
-  content: "";
-  position: absolute;
-  right: -40px;
-  top: 8px;
-  width: 1px;
-  height: 44px;
-  background: rgba(255, 255, 255, 0.2);
+.problemHeadline {
+  font-family: var(--font-display); font-size: clamp(28px,3.5vw,42px);
+  font-weight: 700; color: #fff; margin: 0; line-height: 1.15;
+  letter-spacing: -1px;
 }
-
-.statNum {
-  font-family: var(--font-display);
-  font-size: 42px;
-  font-weight: 700;
-  color: #fff;
-  line-height: 1;
+.problemBody {
+  font-size: 16px; color: rgba(255,255,255,0.6);
+  line-height: 1.7; margin: 0; max-width: 460px;
 }
-
-.statLabel {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.55);
+.problemStats {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
+}
+.problemStat {
+  background: rgba(255,255,255,0.04);
+  border: 0.5px solid rgba(255,255,255,0.08);
+  border-radius: 16px; padding: 24px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.problemStatNum {
+  font-family: var(--font-display); font-size: 36px;
+  font-weight: 700; color: #fff; line-height: 1;
+}
+.problemStatLabel {
+  font-size: 13px; color: rgba(255,255,255,0.5); line-height: 1.5;
+}
+@media (max-width: 700px) {
+  .problemInner { grid-template-columns: 1fr; gap: 40px; }
+  .problemSection { padding: 60px 20px; }
 }
 
 /* ── Section 3: Feature cards ─────────────────────────────────────────────── */
 .featuresSection {
-  position: relative;
-  z-index: 1;
-  padding: 80px 40px 96px;
+  position: relative; z-index: 1;
+  padding: 80px 40px 100px;
+}
+
+.featuresHeader {
+  text-align: center; max-width: 640px;
+  margin: 0 auto 56px; display: flex;
+  flex-direction: column; gap: 12px;
+}
+.featuresSubtext {
+  font-size: 15px; color: rgba(255,255,255,0.5);
+  line-height: 1.7; margin: 0;
 }
 
 .sectionHeadline {
@@ -329,7 +444,7 @@
   font-weight: 700;
   color: #fff;
   text-align: center;
-  margin: 0 0 48px;
+  margin: 0;
   letter-spacing: -0.5px;
 }
 
@@ -342,20 +457,32 @@
 }
 
 .card {
-  background: #fff;
+  background: rgba(255,255,255,0.96);
   border: none;
-  border-radius: var(--radius-lg);
+  border-radius: 16px;
   padding: 28px;
   text-align: left;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   cursor: pointer;
   transition: box-shadow 0.2s, transform 0.15s;
+  position: relative;
+  overflow: hidden;
 }
+.card::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #48cae4, #0077b6);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.card:hover::before { opacity: 1; }
 .card:hover {
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
-  transform: translateY(-3px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.22);
+  transform: translateY(-4px);
 }
 
 .cardIcon {
@@ -381,11 +508,54 @@
   line-height: 1.6;
 }
 
-/* ── Section 4: Mission ───────────────────────────────────────────────────── */
+/* ── Section 4: How it works ──────────────────────────────────────────────── */
+.howSection {
+  position: relative; z-index: 1;
+  padding: 80px 40px;
+}
+.howHeadline {
+  text-align: center; margin: 0 auto 56px; max-width: 500px;
+}
+.howSteps {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 32px; max-width: 960px; margin: 0 auto;
+}
+.howStep {
+  display: flex; flex-direction: column; gap: 12px;
+  background: rgba(255,255,255,0.03);
+  border: 0.5px solid rgba(255,255,255,0.08);
+  border-radius: 20px; padding: 32px 28px;
+  position: relative;
+}
+.howStepNum {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
+  color: #0077b6; font-family: var(--font-display);
+}
+.howStepIcon { font-size: 32px; }
+.howStepTitle {
+  font-size: 17px; font-weight: 700; color: #fff;
+  margin: 0; line-height: 1.3;
+}
+.howStepDesc {
+  font-size: 14px; color: rgba(255,255,255,0.5);
+  line-height: 1.7; margin: 0;
+}
+@media (max-width: 700px) {
+  .howSteps { grid-template-columns: 1fr; }
+  .howSection { padding: 60px 20px; }
+}
+
+/* ── Section 5: Mission ───────────────────────────────────────────────────── */
 .missionSection {
   position: relative;
   z-index: 1;
   padding: 100px 40px 120px;
+}
+
+.missionInner {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 32px;
+  max-width: 800px; margin: 0 auto;
 }
 
 .missionQuote {
@@ -407,12 +577,17 @@
   font-weight: 700;
 }
 
+.missionCTA {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 12px;
+}
+
+.missionNote {
+  font-size: 12px; color: rgba(255,255,255,0.35); margin: 0;
+}
+
 /* ── Responsive ───────────────────────────────────────────────────────────── */
 @media (max-width: 700px) {
-  .nav              { padding: 0 20px; }
-  .statsSection     { padding: 60px 20px; }
-  .statsRow         { gap: 36px; flex-wrap: wrap; }
-  .statGroup:not(:last-child)::after { display: none; }
   .featuresSection  { padding: 60px 20px 72px; }
   .cards            { grid-template-columns: 1fr; }
   .missionSection   { padding: 64px 20px 80px; }
