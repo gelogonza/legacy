@@ -52,7 +52,7 @@ export default function ChatPage({ feature }) {
   const meta = FEATURE_META[feature];
   const starters = STARTERS[feature] ?? [];
 
-  const { profile } = useProfile();
+  const { profile, isProfileComplete } = useProfile();
 
   const handleScholarships = useCallback((results) => {
     setScholarships((prev) => [...prev, ...results]);
@@ -102,6 +102,15 @@ export default function ChatPage({ feature }) {
         <button className={styles.backBtn} onClick={() => navigate("/")}>
           ← Back
         </button>
+
+        {!isProfileComplete && (
+          <div
+            className={styles.profileBanner}
+            onClick={() => navigate("/profile")}
+          >
+            Complete your profile for personalized results →
+          </div>
+        )}
 
         <div className={styles.featureHeader}>
           <div className={styles.featureIcon} style={{ background: `${meta.color}22` }}>

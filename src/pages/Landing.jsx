@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useProfile } from "../hooks/useProfile";
 import styles from "./Landing.module.css";
 import SkyBackground from "../components/SkyBackground";
 
@@ -42,6 +43,7 @@ const STATS = [
 
 export default function Landing() {
   const navigate = useNavigate();
+  const { isProfileComplete } = useProfile();
   const revealRefs = useRef([]);
 
   // Reset the list each render so stale DOM nodes don't linger
@@ -79,6 +81,9 @@ export default function Landing() {
             <span className={styles.logoText}>Legacy</span>
           </div>
           <div className={styles.navLinks}>
+            <span className={styles.navLink} onClick={() => navigate("/profile")}>
+              {isProfileComplete ? "Edit profile" : "Set up profile"}
+            </span>
             <span className={styles.navLink} onClick={() => navigate("/tracker")}>
               My Scholarships
             </span>

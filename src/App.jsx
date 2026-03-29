@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Landing from "./pages/Landing";
 import ChatPage from "./pages/ChatPage";
 import Tracker from "./pages/Tracker";
+import Profile from "./pages/Profile";
 import "./tokens.css";
 
 export default function App() {
@@ -14,6 +15,7 @@ export default function App() {
         <Route path="/essay"        element={<ChatPage feature="essay" />} />
         <Route path="/roadmap"      element={<ChatPage feature="roadmap" />} />
         <Route path="/tracker"      element={<Tracker />} />
+        <Route path="/profile"      element={<Profile />} />
       </Routes>
     </BrowserRouter>
   );
