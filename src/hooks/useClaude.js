@@ -134,8 +134,8 @@ Use this context in all responses. Do not ask for info already provided above.\n
 }
 
 // ── Main hook ─────────────────────────────────────────────────────────────────
-export function useClaude({ feature = "scholarships", profile = null, onScholarships = null, onRoadmap = null } = {}) {
-  const [messages, setMessages] = useState([]);
+export function useClaude({ feature = "scholarships", profile = null, onScholarships = null, onRoadmap = null, initialMessages = null, onMessageSaved = null } = {}) {
+  const [messages, setMessages] = useState(initialMessages ?? []);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [recommendations, setRecommendations] = useState([]);
@@ -153,6 +153,7 @@ export function useClaude({ feature = "scholarships", profile = null, onScholars
       const newMsg = { role: "user", content: userContent };
       const history = [...messages, newMsg];
       setMessages(history);
+      onMessageSaved?.("user", userContent);
 
       try {
         const res = await fetch(`${API_BASE}/api/chat`, {
@@ -210,6 +211,7 @@ export function useClaude({ feature = "scholarships", profile = null, onScholars
         const finalText = displayText.replace(/<roadmap>[\s\S]*?<\/roadmap>/g, "").trim();
 
         setMessages((prev) => [...prev, { role: "assistant", content: finalText }]);
+        onMessageSaved?.("assistant", finalText);
 
         // Use server-side recommendations if available
         if (data.recommendations?.length > 0) {
@@ -221,7 +223,7 @@ export function useClaude({ feature = "scholarships", profile = null, onScholars
         setIsLoading(false);
       }
     },
-    [messages, feature, profile, onScholarships, onRoadmap]
+    [messages, feature, profile, onScholarships, onRoadmap, onMessageSaved]
   );
 
   const clearMessages = useCallback(() => {
