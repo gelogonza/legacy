@@ -819,7 +819,7 @@
 .footer {
   position: relative;
   z-index: 1;
-  border-top: 0.5px solid rgba(255, 255, 255, 0.08);
+  border-top: 0.5px solid rgba(255, 255, 255, 0.12);
   padding: 64px 40px 32px;
 }
 
@@ -866,7 +866,7 @@
 
 .footerTagline {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.6);
   line-height: 1.6;
   max-width: 280px;
   margin: 0;
@@ -883,7 +883,7 @@
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.8);
   margin: 0 0 4px;
 }
 
@@ -891,7 +891,7 @@
   background: none;
   border: none;
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(255, 255, 255, 0.8);
   cursor: pointer;
   padding: 0;
   text-align: left;
@@ -901,14 +901,14 @@
 }
 
 .footerLink:hover {
-  color: rgba(255, 255, 255, 0.9);
+  color: #fff;
 }
 
 .footerBottom {
   max-width: 1100px;
   margin: 0 auto;
   padding-top: 24px;
-  border-top: 0.5px solid rgba(255, 255, 255, 0.06);
+  border-top: 0.5px solid rgba(255, 255, 255, 0.1);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -916,18 +916,18 @@
 
 .footerCopy {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.25);
+  color: rgba(255, 255, 255, 0.8);
   margin: 0;
 }
 
 .footerBottomLink {
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.8);
   text-decoration: none;
   transition: color 0.15s;
 }
 
 .footerBottomLink:hover {
-  color: rgba(255, 255, 255, 0.65);
+  color: #fff;
 }
 
 @media (max-width: 700px) {
