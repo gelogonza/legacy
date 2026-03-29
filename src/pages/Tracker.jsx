@@ -1,64 +1,80 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "../lib/supabase";
+import { getSessionId } from "../lib/session";
 import ScholarshipCard from "../components/ScholarshipCard";
 import styles from "./Tracker.module.css";
 
-const SAVED_KEY = "legacy_saved_scholarships";
-const STATUS_KEY = "legacy_scholarship_status";
 const STATUSES = ["Not started", "In progress", "Submitted"];
-
-function loadSaved() {
-  try {
-    return JSON.parse(localStorage.getItem(SAVED_KEY)) || [];
-  } catch {
-    return [];
-  }
-}
-
-function loadStatuses() {
-  try {
-    return JSON.parse(localStorage.getItem(STATUS_KEY)) || {};
-  } catch {
-    return {};
-  }
-}
 
 export default function Tracker() {
   const navigate = useNavigate();
-  const [saved, setSaved] = useState(loadSaved);
-  const [statuses, setStatuses] = useState(loadStatuses);
+  const sessionId = getSessionId();
+  const [saved, setSaved] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    localStorage.setItem(SAVED_KEY, JSON.stringify(saved));
-  }, [saved]);
+    async function load() {
+      const { data, error } = await supabase
+        .from("saved_scholarships")
+        .select("*")
+        .eq("session_id", sessionId)
+        .order("created_at", { ascending: false });
+      if (error) console.error("Tracker load error:", error.message);
+      setSaved(data || []);
+      setLoading(false);
+    }
+    load();
+  }, [sessionId]);
 
-  useEffect(() => {
-    localStorage.setItem(STATUS_KEY, JSON.stringify(statuses));
-  }, [statuses]);
+  const remove = useCallback(async (scholarship) => {
+    setSaved((prev) => prev.filter((s) => s.id !== scholarship.id));
+    const { error } = await supabase
+      .from("saved_scholarships")
+      .delete()
+      .eq("id", scholarship.id);
+    if (error) console.error("Tracker remove error:", error.message);
+  }, []);
 
-  const remove = (scholarship) => {
-    setSaved((prev) => prev.filter((s) => s.name !== scholarship.name));
-    setStatuses((prev) => {
-      const next = { ...prev };
-      delete next[scholarship.name];
-      return next;
-    });
-  };
+  const cycleStatus = useCallback(async (scholarship) => {
+    const idx = STATUSES.indexOf(scholarship.status || "Not started");
+    const newStatus = STATUSES[(idx + 1) % STATUSES.length];
+    // Optimistic update
+    setSaved((prev) =>
+      prev.map((s) => s.id === scholarship.id ? { ...s, status: newStatus } : s)
+    );
+    const { error } = await supabase
+      .from("saved_scholarships")
+      .update({ status: newStatus })
+      .eq("id", scholarship.id);
+    if (error) console.error("Tracker cycleStatus error:", error.message);
+  }, []);
 
-  const cycleStatus = (name) => {
-    setStatuses((prev) => {
-      const current = prev[name] || "Not started";
-      const idx = STATUSES.indexOf(current);
-      return { ...prev, [name]: STATUSES[(idx + 1) % STATUSES.length] };
-    });
-  };
-
-  const statusClass = (name) => {
-    const s = statuses[name] || "Not started";
-    if (s === "In progress") return styles.statusInProgress;
-    if (s === "Submitted") return styles.statusSubmitted;
+  const statusClass = (status) => {
+    if (status === "In progress") return styles.statusInProgress;
+    if (status === "Submitted") return styles.statusSubmitted;
     return styles.statusNotStarted;
   };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className={styles.page}>
+        <div style={{ display: "flex", justifyContent: "center",
+                      alignItems: "center", height: "100vh" }}>
+          <div style={{ display: "flex", gap: 5 }}>
+            {[0, 150, 300].map((delay) => (
+              <span key={delay} style={{
+                width: 8, height: 8, borderRadius: "50%",
+                background: "rgba(255,255,255,0.5)",
+                animation: `bounce 1.2s ${delay}ms infinite`,
+              }} />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.page}>
@@ -79,13 +95,13 @@ export default function Tracker() {
       ) : (
         <div className={styles.grid}>
           {saved.map((s) => (
-            <div key={s.name} className={styles.cardWrapper}>
+            <div key={s.id} className={styles.cardWrapper}>
               <ScholarshipCard scholarship={s} onRemove={remove} showSave={false} />
               <button
-                className={`${styles.statusBtn} ${statusClass(s.name)}`}
-                onClick={() => cycleStatus(s.name)}
+                className={`${styles.statusBtn} ${statusClass(s.status)}`}
+                onClick={() => cycleStatus(s)}
               >
-                {statuses[s.name] || "Not started"}
+                {s.status || "Not started"}
               </button>
             </div>
           ))}

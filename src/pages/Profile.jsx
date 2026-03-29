@@ -51,10 +51,12 @@ export default function Profile() {
   const [notes, setNotes] = useState(profile.notes || "");
   const [firstGen, setFirstGen] = useState(profile.firstGen ?? true);
 
+  const [saving, setSaving] = useState(false);
   const canSave = name.trim() && profileType && grade && state;
 
-  const handleSave = () => {
-    updateProfile({
+  const handleSave = async () => {
+    setSaving(true);
+    await updateProfile({
       profileType,
       name: name.trim(),
       grade,
@@ -65,6 +67,7 @@ export default function Profile() {
       notes: notes.trim(),
       firstGen,
     });
+    setSaving(false);
     navigate("/");
   };
 
@@ -206,10 +209,10 @@ export default function Profile() {
             <div className={styles.actions}>
               <button
                 className={styles.saveBtn}
-                disabled={!canSave}
+                disabled={!canSave || saving}
                 onClick={handleSave}
               >
-                Save & continue →
+                {saving ? "Saving..." : "Save & continue →"}
               </button>
               <button className={styles.skipLink} onClick={() => navigate("/")}>
                 Skip for now

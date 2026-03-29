@@ -4,6 +4,8 @@ import { useClaude } from "../hooks/useClaude";
 import { useProfile } from "../hooks/useProfile";
 import ScholarshipCard from "../components/ScholarshipCard";
 import RoadmapTimeline from "../components/RoadmapTimeline";
+import { supabase } from "../lib/supabase";
+import { getSessionId } from "../lib/session";
 import styles from "./ChatPage.module.css";
 
 // ── Starter prompts per feature ───────────────────────────────────────────────
@@ -41,8 +43,6 @@ const FEATURE_META = {
   roadmap:      { title: "College Roadmap",      icon: "🗺️", color: "var(--green-light)" },
 };
 
-const SAVED_KEY = "legacy_saved_scholarships";
-
 export default function ChatPage({ feature }) {
   const navigate = useNavigate();
   const [input, setInput] = useState("");
@@ -65,13 +65,29 @@ export default function ChatPage({ feature }) {
     setRoadmapMilestones(milestones);
   }, []);
 
-  const saveScholarship = useCallback((scholarship) => {
-    try {
-      const existing = JSON.parse(localStorage.getItem(SAVED_KEY) || "[]");
-      if (!existing.some((s) => s.name === scholarship.name)) {
-        localStorage.setItem(SAVED_KEY, JSON.stringify([...existing, scholarship]));
-      }
-    } catch {}
+  const saveScholarship = useCallback(async (scholarship) => {
+    const sessionId = getSessionId();
+    // Guard: skip if already saved (check by name + session)
+    const { data: existing } = await supabase
+      .from("saved_scholarships")
+      .select("id")
+      .eq("session_id", sessionId)
+      .eq("name", scholarship.name)
+      .maybeSingle(); // maybeSingle returns null instead of error when no row found
+
+    if (existing) return; // already saved, do nothing
+
+    const { error } = await supabase.from("saved_scholarships").insert({
+      session_id: sessionId,
+      name: scholarship.name,
+      amount: scholarship.amount,
+      deadline: scholarship.deadline,
+      eligibility: scholarship.eligibility,
+      url: scholarship.url,
+      match_reason: scholarship.match_reason,
+      status: "Not started",
+    });
+    if (error) console.error("saveScholarship error:", error.message);
   }, []);
 
   const { messages, isLoading, error, recommendations, sendMessage, clearMessages } = useClaude({

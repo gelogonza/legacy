@@ -1,46 +1,85 @@
 import { useState, useEffect } from "react";
+import { supabase } from "../lib/supabase";
+import { getSessionId } from "../lib/session";
 
 export const EMPTY_PROFILE = {
-  profileType: "",   // "highschool" | "college" | "returning" | "military"
+  profileType: "",
   name: "",
-  grade: "",         // "9th" | "10th" | "11th" | "12th" | "College"
+  grade: "",
   gpa: "",
   state: "",
   majorInterest: "",
   firstGen: true,
-  householdIncome: "", // "under25k" | "25-50k" | "50-75k" | "75k+"
-  notes: "",           // free text: extracurriculars, background, identity
+  householdIncome: "",
+  notes: "",
 };
 
 export function useProfile() {
-  const [profile, setProfile] = useState(() => {
-    try {
-      const saved = localStorage.getItem("legacy_profile");
-      return saved ? JSON.parse(saved) : EMPTY_PROFILE;
-    } catch {
-      return EMPTY_PROFILE;
-    }
-  });
+  const [profile, setProfile] = useState(EMPTY_PROFILE);
+  const [loading, setLoading] = useState(true);
+  const sessionId = getSessionId();
 
   useEffect(() => {
-    localStorage.setItem("legacy_profile", JSON.stringify(profile));
-  }, [profile]);
+    async function load() {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("session_id", sessionId)
+        .single();
 
-  const updateProfile = (fields) =>
-    setProfile((prev) => {
-      const next = { ...prev, ...fields };
-      localStorage.setItem("legacy_profile", JSON.stringify(next));
-      return next;
-    });
+      // PGRST116 = no rows found — not a real error, just a new user
+      if (data && !error) {
+        setProfile({
+          name: data.name || "",
+          profileType: data.profile_type || "",
+          grade: data.grade || "",
+          gpa: data.gpa || "",
+          state: data.state || "",
+          majorInterest: data.major_interest || "",
+          firstGen: data.first_gen ?? true,
+          householdIncome: data.household_income || "",
+          notes: data.notes || "",
+        });
+      }
+      setLoading(false);
+    }
+    load();
+  }, [sessionId]);
 
-  const clearProfile = () => {
-    localStorage.setItem("legacy_profile", JSON.stringify(EMPTY_PROFILE));
+  const updateProfile = async (fields) => {
+    const merged = { ...profile, ...fields };
+    setProfile(merged); // optimistic update
+    const { error } = await supabase.from("profiles").upsert(
+      {
+        session_id: sessionId,
+        name: merged.name,
+        profile_type: merged.profileType,
+        grade: merged.grade,
+        gpa: merged.gpa,
+        state: merged.state,
+        major_interest: merged.majorInterest,
+        first_gen: merged.firstGen,
+        household_income: merged.householdIncome,
+        notes: merged.notes,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "session_id" }
+    );
+    if (error) console.error("useProfile updateProfile error:", error.message);
+  };
+
+  const clearProfile = async () => {
     setProfile(EMPTY_PROFILE);
+    const { error } = await supabase
+      .from("profiles")
+      .delete()
+      .eq("session_id", sessionId);
+    if (error) console.error("useProfile clearProfile error:", error.message);
   };
 
   const isProfileComplete = !!(
-    profile.profileType && profile.name && profile.grade && profile.state
+    profile.name && profile.profileType && profile.grade && profile.state
   );
 
-  return { profile, updateProfile, clearProfile, isProfileComplete };
+  return { profile, updateProfile, clearProfile, isProfileComplete, loading };
 }
