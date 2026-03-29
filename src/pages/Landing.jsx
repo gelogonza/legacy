@@ -41,10 +41,36 @@ const STATS = [
   { num: "Free", label: "Always, for students" },
 ];
 
+const CTA_MAP = {
+  highschool: { text: "Find my scholarships →", route: "/scholarships" },
+  college:    { text: "Check my roadmap →",      route: "/roadmap" },
+  returning:  { text: "Explore FAFSA options →", route: "/fafsa" },
+  military:   { text: "Find my benefits →",      route: "/scholarships" },
+};
+
+const TYPE_META = {
+  highschool: { emoji: "🎒", label: "High school" },
+  college:    { emoji: "🎓", label: "College" },
+  returning:  { emoji: "🔄", label: "Returning" },
+  military:   { emoji: "🎖️", label: "Military" },
+};
+
+function buildBannerText(profile) {
+  const meta = TYPE_META[profile.profileType];
+  if (!meta) return null;
+  const parts = [meta.emoji + " " + meta.label];
+  if (profile.grade) parts[0] += " " + profile.grade.toLowerCase();
+  if (profile.state) parts.push(profile.state);
+  if (profile.gpa) parts.push("GPA " + profile.gpa);
+  if (profile.majorInterest) parts.push(profile.majorInterest);
+  return parts.join(" · ");
+}
+
 export default function Landing() {
   const navigate = useNavigate();
-  const { isProfileComplete } = useProfile();
+  const { profile, isProfileComplete } = useProfile();
   const revealRefs = useRef([]);
+  const cta = CTA_MAP[profile.profileType] || CTA_MAP.highschool;
 
   // Reset the list each render so stale DOM nodes don't linger
   revealRefs.current = [];
@@ -81,9 +107,18 @@ export default function Landing() {
             <span className={styles.logoText}>Legacy</span>
           </div>
           <div className={styles.navLinks}>
-            <span className={styles.navLink} onClick={() => navigate("/profile")}>
-              {isProfileComplete ? "Edit profile" : "Set up profile"}
-            </span>
+            {isProfileComplete ? (
+              <div className={styles.avatarPill} onClick={() => navigate("/profile")}>
+                <div className={styles.avatarCircle}>
+                  {profile.name.charAt(0).toUpperCase()}
+                </div>
+                <span className={styles.avatarName}>{profile.name}</span>
+              </div>
+            ) : (
+              <span className={styles.navLink} onClick={() => navigate("/profile")}>
+                Get started →
+              </span>
+            )}
             <span className={styles.navLink} onClick={() => navigate("/tracker")}>
               My Scholarships
             </span>
@@ -91,28 +126,53 @@ export default function Landing() {
         </nav>
 
         <div className={styles.heroContent}>
-          <h1 className={styles.headline}>
-            Create your{" "}
-            <i className={styles.headlinei}>Legacy</i>
-          </h1>
+          {isProfileComplete && (
+            <div className={styles.profileBanner}>
+              {buildBannerText(profile)}
+            </div>
+          )}
+
+          {isProfileComplete ? (
+            <h1 className={styles.headline}>
+              Welcome back, {profile.name}.
+            </h1>
+          ) : (
+            <h1 className={styles.headline}>
+              Create your{" "}
+              <i className={styles.headlinei}>Legacy</i>
+            </h1>
+          )}
 
           <p className={styles.subtext}>
-            The AI-powered college guide built for first-generation, low-income students.
+            {isProfileComplete
+              ? "Pick up where you left off."
+              : "The AI-powered college guide built for first-generation, low-income students."}
           </p>
 
           <div className={styles.ctaRow}>
-            <button
-              className={styles.ctaPrimary}
-              onClick={() => navigate("/scholarships")}
-            >
-              Find my scholarships →
-            </button>
-            <button
-              className={styles.ctaSecondary}
-              onClick={() => navigate("/fafsa")}
-            >
-              Learn more
-            </button>
+            {isProfileComplete ? (
+              <button
+                className={styles.ctaPrimary}
+                onClick={() => navigate(cta.route)}
+              >
+                {cta.text}
+              </button>
+            ) : (
+              <>
+                <button
+                  className={styles.ctaPrimary}
+                  onClick={() => navigate("/scholarships")}
+                >
+                  Find my scholarships →
+                </button>
+                <button
+                  className={styles.ctaSecondary}
+                  onClick={() => navigate("/profile")}
+                >
+                  Set up my profile →
+                </button>
+              </>
+            )}
           </div>
         </div>
 

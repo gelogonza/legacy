@@ -68,6 +68,47 @@
   width: 100%;
 }
 
+/* ── Avatar pill ─────────────────────────────────────────────────────────── */
+.avatarPill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.avatarPill:hover { opacity: 0.8; }
+
+.avatarCircle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #0077b6;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.avatarName {
+  font-size: 13px;
+  color: #fff;
+}
+
+/* ── Profile banner ──────────────────────────────────────────────────────── */
+.profileBanner {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-size: 12px;
+  padding: 6px 16px;
+  border-radius: 20px;
+  margin-bottom: 16px;
+  opacity: 0;
+  animation: fadeInUp 0.7s ease-out 0.1s forwards;
+}
+
 /* ── Hero content ─────────────────────────────────────────────────────────── */
 .heroContent {
   flex: 1;
