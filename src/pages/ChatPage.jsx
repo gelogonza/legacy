@@ -5,7 +5,6 @@ import { useProfile } from "../hooks/useProfile";
 import ScholarshipCard from "../components/ScholarshipCard";
 import RoadmapTimeline from "../components/RoadmapTimeline";
 import { supabase } from "../lib/supabase";
-import { getSessionId } from "../lib/session";
 import styles from "./ChatPage.module.css";
 
 // ── Starter prompts per feature ───────────────────────────────────────────────
@@ -80,19 +79,20 @@ export default function ChatPage({ feature }) {
   }, []);
 
   const saveScholarship = useCallback(async (scholarship) => {
-    const sessionId = getSessionId();
-    // Guard: skip if already saved (check by name + session)
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
     const { data: existing } = await supabase
       .from("saved_scholarships")
       .select("id")
-      .eq("session_id", sessionId)
+      .eq("user_id", user.id)
       .eq("name", scholarship.name)
-      .maybeSingle(); // maybeSingle returns null instead of error when no row found
+      .maybeSingle();
 
-    if (existing) return; // already saved, do nothing
+    if (existing) return;
 
     const { error } = await supabase.from("saved_scholarships").insert({
-      session_id: sessionId,
+      user_id: user.id,
       name: scholarship.name,
       amount: scholarship.amount,
       deadline: scholarship.deadline,

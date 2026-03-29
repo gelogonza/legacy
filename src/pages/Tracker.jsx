@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
-import { getSessionId } from "../lib/session";
 import ScholarshipCard from "../components/ScholarshipCard";
 import styles from "./Tracker.module.css";
 
@@ -9,23 +8,25 @@ const STATUSES = ["Not started", "In progress", "Submitted"];
 
 export default function Tracker() {
   const navigate = useNavigate();
-  const sessionId = getSessionId();
   const [saved, setSaved] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setLoading(false); return; }
+
       const { data, error } = await supabase
         .from("saved_scholarships")
         .select("*")
-        .eq("session_id", sessionId)
+        .eq("user_id", user.id)
         .order("created_at", { ascending: false });
       if (error) console.error("Tracker load error:", error.message);
       setSaved(data || []);
       setLoading(false);
     }
     load();
-  }, [sessionId]);
+  }, []);
 
   const remove = useCallback(async (scholarship) => {
     setSaved((prev) => prev.filter((s) => s.id !== scholarship.id));

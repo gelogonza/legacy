@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
-import { getSessionId } from "../lib/session";
 
 export const EMPTY_PROFILE = {
   profileType: "",
@@ -17,14 +16,19 @@ export const EMPTY_PROFILE = {
 export function useProfile() {
   const [profile, setProfile] = useState(EMPTY_PROFILE);
   const [loading, setLoading] = useState(true);
-  const sessionId = getSessionId();
 
   useEffect(() => {
     async function load() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
-        .eq("session_id", sessionId)
+        .eq("user_id", user.id)
         .single();
 
       // PGRST116 = no rows found — not a real error, just a new user
@@ -44,14 +48,22 @@ export function useProfile() {
       setLoading(false);
     }
     load();
-  }, [sessionId]);
+  }, []);
 
   const updateProfile = async (fields) => {
     const merged = { ...profile, ...fields };
     setProfile(merged); // optimistic update
+
+    const { data: { user } } = await supabase.auth.getUser();
+    console.log("[useProfile] updateProfile user:", user?.id);
+    if (!user) {
+      console.error("[useProfile] updateProfile called with no auth user — aborting");
+      return;
+    }
+
     const { error } = await supabase.from("profiles").upsert(
       {
-        session_id: sessionId,
+        user_id: user.id,
         name: merged.name,
         profile_type: merged.profileType,
         grade: merged.grade,
@@ -63,18 +75,20 @@ export function useProfile() {
         notes: merged.notes,
         updated_at: new Date().toISOString(),
       },
-      { onConflict: "session_id" }
+      { onConflict: "user_id" }
     );
-    if (error) console.error("useProfile updateProfile error:", error.message);
+    if (error) console.error("updateProfile error:", error.message);
   };
 
   const clearProfile = async () => {
     setProfile(EMPTY_PROFILE);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
     const { error } = await supabase
       .from("profiles")
       .delete()
-      .eq("session_id", sessionId);
-    if (error) console.error("useProfile clearProfile error:", error.message);
+      .eq("user_id", user.id);
+    if (error) console.error("clearProfile error:", error.message);
   };
 
   const isProfileComplete = !!(

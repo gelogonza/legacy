@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProfile } from "../hooks/useProfile";
+import { useAuth } from "../hooks/useAuth";
 import styles from "./Landing.module.css";
 import SkyBackground from "../components/SkyBackground";
 
@@ -82,9 +83,11 @@ function buildBannerText(profile) {
 
 export default function Landing() {
   const navigate = useNavigate();
+  const { user, authLoading, signOut } = useAuth();
   const { profile, isProfileComplete, loading } = useProfile();
   const revealRefs = useRef([]);
   const cta = CTA_MAP[profile.profileType] || CTA_MAP.highschool;
+  const isLoading = authLoading || loading;
 
   // Reset the list each render so stale DOM nodes don't linger
   revealRefs.current = [];
@@ -121,7 +124,7 @@ export default function Landing() {
             <span className={styles.logoText}>Legacy</span>
           </div>
           <div className={styles.navLinks}>
-            {!loading && isProfileComplete && (
+            {!isLoading && user && isProfileComplete && (
               <div className={styles.avatarPill} onClick={() => navigate("/profile")}>
                 <div className={styles.avatarCircle}>
                   {profile.name.charAt(0).toUpperCase()}
@@ -129,18 +132,30 @@ export default function Landing() {
                 <span className={styles.avatarName}>{profile.name}</span>
               </div>
             )}
-            {!loading && !isProfileComplete && (
+            {!isLoading && user && !isProfileComplete && (
               <span className={styles.navLink} onClick={() => navigate("/profile")}>
                 Get started →
               </span>
             )}
-            <span className={styles.navLink} onClick={() => navigate("/tracker")}>
-              My Scholarships
-            </span>
+            {!isLoading && !user && (
+              <span className={styles.navLink} onClick={() => navigate("/auth")}>
+                Sign up →
+              </span>
+            )}
+            {user && (
+              <span className={styles.navLink} onClick={() => navigate("/tracker")}>
+                My Scholarships
+              </span>
+            )}
+            {user && (
+              <span className={styles.navLink} onClick={signOut}>
+                Sign out
+              </span>
+            )}
           </div>
         </nav>
 
-        {loading ? (
+        {isLoading ? (
           <div className={styles.heroContent}>
             <div style={{ width: 320, height: 72, background: "rgba(255,255,255,0.12)",
                           borderRadius: 6, marginBottom: 24,
@@ -154,13 +169,13 @@ export default function Landing() {
           </div>
         ) : (
           <div className={styles.heroContent}>
-            {isProfileComplete && (
+            {user && isProfileComplete && (
               <div className={styles.profileBanner}>
                 {buildBannerText(profile)}
               </div>
             )}
 
-            {isProfileComplete ? (
+            {user && isProfileComplete ? (
               <h1 className={styles.headline}>
                 Welcome back, {profile.name}.
               </h1>
@@ -172,20 +187,20 @@ export default function Landing() {
             )}
 
             <p className={styles.subtext}>
-              {isProfileComplete
+              {user && isProfileComplete
                 ? "Pick up where you left off."
                 : "The AI-powered college guide built for first-generation, low-income students."}
             </p>
 
             <div className={styles.ctaRow}>
-              {isProfileComplete ? (
+              {user && isProfileComplete ? (
                 <button
                   className={styles.ctaPrimary}
                   onClick={() => navigate(cta.route)}
                 >
                   {cta.text}
                 </button>
-              ) : (
+              ) : user ? (
                 <>
                   <button
                     className={styles.ctaPrimary}
@@ -198,6 +213,21 @@ export default function Landing() {
                     onClick={() => navigate("/profile")}
                   >
                     Set up my profile →
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    className={styles.ctaPrimary}
+                    onClick={() => navigate("/auth")}
+                  >
+                    Get started free →
+                  </button>
+                  <button
+                    className={styles.ctaSecondary}
+                    onClick={() => navigate("/auth")}
+                  >
+                    Sign in →
                   </button>
                 </>
               )}
