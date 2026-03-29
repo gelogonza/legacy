@@ -34,6 +34,18 @@ const STARTERS = {
     "What's the difference between applying to HBCUs vs. PWIs?",
     "I want to be a nurse. Help me build a college plan around that.",
   ],
+  local: [
+    "What college prep programs exist in my area for first-gen students?",
+    "Are there any local scholarships or grants specific to my state?",
+    "What community organizations help students like me pay for college?",
+    "Are there any summer programs or internships I should apply for?",
+  ],
+  career: [
+    "I want to be a nurse — what should I be doing in high school right now?",
+    "What careers can I get into with a Computer Science degree?",
+    "How do I figure out what to major in if I don't know what I want to do?",
+    "What does a day in the life of an engineer actually look like?",
+  ],
 };
 
 const FEATURE_META = {
@@ -41,6 +53,8 @@ const FEATURE_META = {
   fafsa:        { title: "FAFSA Guide",         icon: "📋", color: "var(--green)" },
   essay:        { title: "Essay Coach",          icon: "✍️", color: "var(--amber)" },
   roadmap:      { title: "College Roadmap",      icon: "🗺️", color: "var(--green-light)" },
+  local:        { title: "Local Opportunities", icon: "📍", color: "var(--green)" },
+  career:       { title: "Career Advisor",      icon: "💼", color: "var(--amber)" },
 };
 
 export default function ChatPage({ feature }) {

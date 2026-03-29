@@ -14,6 +14,8 @@ export default function App() {
         <Route path="/fafsa"        element={<ChatPage feature="fafsa" />} />
         <Route path="/essay"        element={<ChatPage feature="essay" />} />
         <Route path="/roadmap"      element={<ChatPage feature="roadmap" />} />
+        <Route path="/local"        element={<ChatPage feature="local" />} />
+        <Route path="/career"       element={<ChatPage feature="career" />} />
         <Route path="/tracker"      element={<Tracker />} />
         <Route path="/profile"      element={<Profile />} />
       </Routes>

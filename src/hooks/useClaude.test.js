@@ -3,11 +3,13 @@ import { SYSTEM_PROMPTS } from "./useClaude";
 
 // ── System prompt content tests ──────────────────────────────────────────────
 describe("SYSTEM_PROMPTS", () => {
-  it("has all four feature prompts", () => {
+  it("has all six feature prompts", () => {
     expect(SYSTEM_PROMPTS).toHaveProperty("scholarships");
     expect(SYSTEM_PROMPTS).toHaveProperty("fafsa");
     expect(SYSTEM_PROMPTS).toHaveProperty("essay");
     expect(SYSTEM_PROMPTS).toHaveProperty("roadmap");
+    expect(SYSTEM_PROMPTS).toHaveProperty("local");
+    expect(SYSTEM_PROMPTS).toHaveProperty("career");
   });
 
   it("scholarships prompt includes <scholarships> tag instructions", () => {
@@ -41,6 +43,14 @@ describe("SYSTEM_PROMPTS", () => {
 
   it("keeps HBCU references in roadmap", () => {
     expect(SYSTEM_PROMPTS.roadmap).toContain("HBCU");
+  });
+
+  it("local prompt warns against making up program names", () => {
+    expect(SYSTEM_PROMPTS.local).toContain("Never make up");
+  });
+
+  it("career prompt mentions HBCUs", () => {
+    expect(SYSTEM_PROMPTS.career).toContain("HBCU");
   });
 });
 

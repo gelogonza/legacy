@@ -33,6 +33,20 @@ const FEATURES = [
     color: "var(--green-light)",
     route: "/roadmap",
   },
+  {
+    icon: "📍",
+    title: "Local opportunities",
+    desc: "Community programs, local scholarships, and regional resources near you.",
+    color: "var(--green)",
+    route: "/local",
+  },
+  {
+    icon: "💼",
+    title: "Career advisor",
+    desc: "Connect your major to real careers and build toward your goals.",
+    color: "var(--amber)",
+    route: "/career",
+  },
 ];
 
 const STATS = [

@@ -1,10 +1,37 @@
-import { renderHook, act } from "@testing-library/react";
-import { describe, it, expect, beforeEach } from "vitest";
+import { renderHook, act, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { useProfile, EMPTY_PROFILE } from "./useProfile";
+
+// ── Supabase mock ────────────────────────────────────────────────────────────
+const mockSingle = vi.fn().mockResolvedValue({ data: null, error: null });
+const mockUpsert = vi.fn().mockResolvedValue({ error: null });
+const mockDeleteEq = vi.fn().mockResolvedValue({ error: null });
+const mockDelete = vi.fn(() => ({ eq: mockDeleteEq }));
+
+vi.mock("../lib/supabase", () => ({
+  supabase: {
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          single: mockSingle,
+        })),
+      })),
+      upsert: mockUpsert,
+      delete: mockDelete,
+    })),
+  },
+}));
+
+vi.mock("../lib/session", () => ({
+  getSessionId: vi.fn(() => "test-session-id"),
+}));
 
 describe("useProfile", () => {
   beforeEach(() => {
-    localStorage.clear();
+    vi.clearAllMocks();
+    mockSingle.mockResolvedValue({ data: null, error: null });
+    mockUpsert.mockResolvedValue({ error: null });
+    mockDeleteEq.mockResolvedValue({ error: null });
   });
 
   // ── EMPTY_PROFILE shape ─────────────────────────────────────────────────
@@ -24,117 +51,182 @@ describe("useProfile", () => {
   });
 
   // ── Initialization ──────────────────────────────────────────────────────
-  it("initializes with EMPTY_PROFILE when localStorage is empty", () => {
+  it("initializes with EMPTY_PROFILE when no profile exists", async () => {
     const { result } = renderHook(() => useProfile());
+    await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.profile).toEqual(EMPTY_PROFILE);
     expect(result.current.isProfileComplete).toBe(false);
   });
 
-  it("reads existing profile from localStorage on mount", () => {
-    const saved = { ...EMPTY_PROFILE, profileType: "highschool", name: "Maria", grade: "11th", state: "Texas" };
-    localStorage.setItem("legacy_profile", JSON.stringify(saved));
+  it("reads existing profile from Supabase on mount", async () => {
+    mockSingle.mockResolvedValue({
+      data: {
+        session_id: "test-session-id",
+        name: "Maria",
+        profile_type: "highschool",
+        grade: "11th",
+        state: "Texas",
+        gpa: "3.4",
+        major_interest: "Nursing",
+        first_gen: true,
+        household_income: "under25k",
+        notes: "",
+      },
+      error: null,
+    });
 
     const { result } = renderHook(() => useProfile());
+    await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.profile.name).toBe("Maria");
     expect(result.current.profile.profileType).toBe("highschool");
     expect(result.current.isProfileComplete).toBe(true);
   });
 
-  it("handles corrupted localStorage gracefully", () => {
-    localStorage.setItem("legacy_profile", "NOT_VALID_JSON{{{");
+  it("handles PGRST116 error (no rows) gracefully", async () => {
+    mockSingle.mockResolvedValue({
+      data: null,
+      error: { code: "PGRST116", message: "no rows" },
+    });
 
     const { result } = renderHook(() => useProfile());
+    await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.profile).toEqual(EMPTY_PROFILE);
   });
 
   // ── updateProfile ───────────────────────────────────────────────────────
-  it("updates profile fields and persists to localStorage synchronously", () => {
+  it("updateProfile merges fields and calls Supabase upsert", async () => {
     const { result } = renderHook(() => useProfile());
+    await waitFor(() => expect(result.current.loading).toBe(false));
 
-    act(() => {
-      result.current.updateProfile({ name: "Alex", profileType: "college" });
+    await act(async () => {
+      await result.current.updateProfile({ name: "Alex", profileType: "college" });
     });
 
     expect(result.current.profile.name).toBe("Alex");
     expect(result.current.profile.profileType).toBe("college");
-
-    // Should be written to localStorage synchronously (not just via useEffect)
-    const stored = JSON.parse(localStorage.getItem("legacy_profile"));
-    expect(stored.name).toBe("Alex");
-    expect(stored.profileType).toBe("college");
+    expect(mockUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({ session_id: "test-session-id", name: "Alex", profile_type: "college" }),
+      { onConflict: "session_id" }
+    );
   });
 
-  it("merges fields without overwriting existing ones", () => {
+  it("updateProfile does optimistic update before Supabase resolves", async () => {
+    // Make upsert hang forever
+    mockUpsert.mockReturnValue(new Promise(() => {}));
+
     const { result } = renderHook(() => useProfile());
+    await waitFor(() => expect(result.current.loading).toBe(false));
 
+    // Don't await — fire and forget
     act(() => {
-      result.current.updateProfile({ name: "Alex", state: "NY" });
-    });
-    act(() => {
-      result.current.updateProfile({ gpa: "3.8" });
+      result.current.updateProfile({ name: "Alex" });
     });
 
+    // Profile updated immediately even though upsert hasn't resolved
     expect(result.current.profile.name).toBe("Alex");
-    expect(result.current.profile.state).toBe("NY");
+  });
+
+  it("updateProfile merges without overwriting existing fields", async () => {
+    mockSingle.mockResolvedValue({
+      data: {
+        session_id: "test-session-id",
+        name: "Maria",
+        profile_type: "highschool",
+        grade: "11th",
+        state: "Texas",
+        gpa: "3.4",
+        major_interest: "",
+        first_gen: true,
+        household_income: "",
+        notes: "",
+      },
+      error: null,
+    });
+
+    const { result } = renderHook(() => useProfile());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await result.current.updateProfile({ gpa: "3.8" });
+    });
+
+    expect(result.current.profile.name).toBe("Maria");
+    expect(result.current.profile.state).toBe("Texas");
     expect(result.current.profile.gpa).toBe("3.8");
   });
 
   // ── clearProfile ────────────────────────────────────────────────────────
-  it("clears profile back to EMPTY_PROFILE", () => {
-    const { result } = renderHook(() => useProfile());
-
-    act(() => {
-      result.current.updateProfile({ name: "Alex", profileType: "highschool", grade: "10th", state: "TX" });
+  it("clearProfile resets to EMPTY_PROFILE", async () => {
+    mockSingle.mockResolvedValue({
+      data: {
+        session_id: "test-session-id",
+        name: "Alex",
+        profile_type: "highschool",
+        grade: "10th",
+        state: "TX",
+        gpa: "",
+        major_interest: "",
+        first_gen: true,
+        household_income: "",
+        notes: "",
+      },
+      error: null,
     });
+
+    const { result } = renderHook(() => useProfile());
+    await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.isProfileComplete).toBe(true);
 
-    act(() => {
-      result.current.clearProfile();
+    await act(async () => {
+      await result.current.clearProfile();
     });
+
     expect(result.current.profile).toEqual(EMPTY_PROFILE);
     expect(result.current.isProfileComplete).toBe(false);
-
-    const stored = JSON.parse(localStorage.getItem("legacy_profile"));
-    expect(stored).toEqual(EMPTY_PROFILE);
   });
 
   // ── isProfileComplete ───────────────────────────────────────────────────
-  it("is false when profileType is missing", () => {
+  it("is false when profileType is missing", async () => {
     const { result } = renderHook(() => useProfile());
-    act(() => {
-      result.current.updateProfile({ name: "Alex", grade: "11th", state: "TX" });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    await act(async () => {
+      await result.current.updateProfile({ name: "Alex", grade: "11th", state: "TX" });
     });
     expect(result.current.isProfileComplete).toBe(false);
   });
 
-  it("is false when name is missing", () => {
+  it("is false when name is missing", async () => {
     const { result } = renderHook(() => useProfile());
-    act(() => {
-      result.current.updateProfile({ profileType: "highschool", grade: "11th", state: "TX" });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    await act(async () => {
+      await result.current.updateProfile({ profileType: "highschool", grade: "11th", state: "TX" });
     });
     expect(result.current.isProfileComplete).toBe(false);
   });
 
-  it("is false when grade is missing", () => {
+  it("is false when grade is missing", async () => {
     const { result } = renderHook(() => useProfile());
-    act(() => {
-      result.current.updateProfile({ profileType: "highschool", name: "Alex", state: "TX" });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    await act(async () => {
+      await result.current.updateProfile({ profileType: "highschool", name: "Alex", state: "TX" });
     });
     expect(result.current.isProfileComplete).toBe(false);
   });
 
-  it("is false when state is missing", () => {
+  it("is false when state is missing", async () => {
     const { result } = renderHook(() => useProfile());
-    act(() => {
-      result.current.updateProfile({ profileType: "highschool", name: "Alex", grade: "11th" });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    await act(async () => {
+      await result.current.updateProfile({ profileType: "highschool", name: "Alex", grade: "11th" });
     });
     expect(result.current.isProfileComplete).toBe(false);
   });
 
-  it("is true when all four required fields are present", () => {
+  it("is true when all four required fields are present", async () => {
     const { result } = renderHook(() => useProfile());
-    act(() => {
-      result.current.updateProfile({
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    await act(async () => {
+      await result.current.updateProfile({
         profileType: "highschool",
         name: "Alex",
         grade: "11th",
@@ -144,24 +236,14 @@ describe("useProfile", () => {
     expect(result.current.isProfileComplete).toBe(true);
   });
 
-  // ── Cross-component sync (the bug we fixed) ────────────────────────────
-  it("new hook instance reads updated profile from localStorage", () => {
-    const { result: writer } = renderHook(() => useProfile());
+  // ── loading state ──────────────────────────────────────────────────────
+  it("loading starts as true", () => {
+    const { result } = renderHook(() => useProfile());
+    expect(result.current.loading).toBe(true);
+  });
 
-    act(() => {
-      writer.current.updateProfile({
-        profileType: "college",
-        name: "Jordan",
-        grade: "Sophomore",
-        state: "California",
-        gpa: "3.6",
-      });
-    });
-
-    // Simulate a new component mounting and reading localStorage
-    const { result: reader } = renderHook(() => useProfile());
-    expect(reader.current.profile.name).toBe("Jordan");
-    expect(reader.current.profile.profileType).toBe("college");
-    expect(reader.current.isProfileComplete).toBe(true);
+  it("loading becomes false after Supabase resolves", async () => {
+    const { result } = renderHook(() => useProfile());
+    await waitFor(() => expect(result.current.loading).toBe(false));
   });
 });
