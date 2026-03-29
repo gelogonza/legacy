@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useClaude } from "../hooks/useClaude";
 import { useProfile } from "../hooks/useProfile";
 import ScholarshipCard from "../components/ScholarshipCard";
+import RoadmapTimeline from "../components/RoadmapTimeline";
+import { supabase } from "../lib/supabase";
 import styles from "./ChatPage.module.css";
 
 // ── Starter prompts per feature ───────────────────────────────────────────────
@@ -31,6 +33,18 @@ const STARTERS = {
     "What's the difference between applying to HBCUs vs. PWIs?",
     "I want to be a nurse. Help me build a college plan around that.",
   ],
+  local: [
+    "What college prep programs exist in my area for first-gen students?",
+    "Are there any local scholarships or grants specific to my state?",
+    "What community organizations help students like me pay for college?",
+    "Are there any summer programs or internships I should apply for?",
+  ],
+  career: [
+    "I want to be a nurse — what should I be doing in high school right now?",
+    "What careers can I get into with a Computer Science degree?",
+    "How do I figure out what to major in if I don't know what I want to do?",
+    "What does a day in the life of an engineer actually look like?",
+  ],
 };
 
 const FEATURE_META = {
@@ -38,50 +52,93 @@ const FEATURE_META = {
   fafsa:        { title: "FAFSA Guide",         icon: "📋", color: "var(--green)" },
   essay:        { title: "Essay Coach",          icon: "✍️", color: "var(--amber)" },
   roadmap:      { title: "College Roadmap",      icon: "🗺️", color: "var(--green-light)" },
+  local:        { title: "Local Opportunities", icon: "📍", color: "var(--green)" },
+  career:       { title: "Career Advisor",      icon: "💼", color: "var(--amber)" },
 };
-
-const SAVED_KEY = "legacy_saved_scholarships";
 
 export default function ChatPage({ feature }) {
   const navigate = useNavigate();
   const [input, setInput] = useState("");
-  const [image, setImage] = useState(null);
+  const [attachment, setAttachment] = useState(null); // { data, type, mediaType, name }
   const [scholarships, setScholarships] = useState([]);
+  const [roadmapMilestones, setRoadmapMilestones] = useState([]);
+  const [autoStarted, setAutoStarted] = useState(false);
   const bottomRef = useRef(null);
   const fileRef = useRef(null);
   const meta = FEATURE_META[feature];
   const starters = STARTERS[feature] ?? [];
 
-  const { profile } = useProfile();
+  const { profile, isProfileComplete } = useProfile();
 
   const handleScholarships = useCallback((results) => {
     setScholarships((prev) => [...prev, ...results]);
   }, []);
 
-  const saveScholarship = useCallback((scholarship) => {
-    try {
-      const existing = JSON.parse(localStorage.getItem(SAVED_KEY) || "[]");
-      if (!existing.some((s) => s.name === scholarship.name)) {
-        localStorage.setItem(SAVED_KEY, JSON.stringify([...existing, scholarship]));
-      }
-    } catch {}
+  const handleRoadmap = useCallback((milestones) => {
+    setRoadmapMilestones(milestones);
+  }, []);
+
+  const saveScholarship = useCallback(async (scholarship) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data: existing } = await supabase
+      .from("saved_scholarships")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("name", scholarship.name)
+      .maybeSingle();
+
+    if (existing) return;
+
+    const { error } = await supabase.from("saved_scholarships").insert({
+      user_id: user.id,
+      name: scholarship.name,
+      amount: scholarship.amount,
+      deadline: scholarship.deadline,
+      eligibility: scholarship.eligibility,
+      url: scholarship.url,
+      match_reason: scholarship.match_reason,
+      status: "Not started",
+    });
+    if (error) console.error("saveScholarship error:", error.message);
   }, []);
 
   const { messages, isLoading, error, recommendations, sendMessage, clearMessages } = useClaude({
     feature,
     profile,
     onScholarships: feature === "scholarships" ? handleScholarships : null,
+    onRoadmap: feature === "roadmap" ? handleRoadmap : null,
   });
+
+  // Auto-send personalized opening message on mount
+  useEffect(() => {
+    if (!isProfileComplete || messages.length > 0) return;
+
+    const openingMessages = {
+      scholarships: `My name is ${profile.name}. I'm a ${profile.grade} student in ${profile.state}${profile.gpa ? ` with a ${profile.gpa} GPA` : ""}${profile.majorInterest ? `, interested in ${profile.majorInterest}` : ""}. What scholarships should I apply for?`,
+      fafsa: `My name is ${profile.name}. I'm a ${profile.grade} student in ${profile.state} from a household income of ${profile.householdIncome || "not disclosed"}. I need help understanding FAFSA and what financial aid I might qualify for.`,
+      essay: `My name is ${profile.name}. I'm a ${profile.grade} student in ${profile.state}${profile.majorInterest ? ` planning to study ${profile.majorInterest}` : ""}. I'm working on my college application essays and need help finding my story.`,
+      roadmap: `My name is ${profile.name}. I'm a ${profile.grade} student in ${profile.state}${profile.gpa ? ` with a ${profile.gpa} GPA` : ""}${profile.majorInterest ? `, interested in ${profile.majorInterest}` : ""}. Can you build me a personalized college roadmap?`,
+    };
+
+    const msg = openingMessages[feature];
+    if (msg) {
+      setAutoStarted(true);
+      const timer = setTimeout(() => sendMessage(msg), 600);
+      return () => clearTimeout(timer);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
 
   const handleSend = async (text = input) => {
-    if (!text.trim() && !image) return;
+    if (!text.trim() && !attachment) return;
     setInput("");
-    await sendMessage(text.trim(), image);
-    setImage(null);
+    await sendMessage(text.trim(), attachment);
+    setAttachment(null);
   };
 
   const handleKey = (e) => {
@@ -89,9 +146,21 @@ export default function ChatPage({ feature }) {
   };
 
   const handleFile = (file) => {
-    if (!file?.type.startsWith("image/")) return;
+    if (!file) return;
+    const isPdf = file.type === "application/pdf";
+    const isImage = file.type.startsWith("image/");
+    if (!isPdf && !isImage) return;
+
     const reader = new FileReader();
-    reader.onload = (e) => setImage(e.target.result.split(",")[1]);
+    reader.onload = (e) => {
+      const base64 = e.target.result.split(",")[1];
+      setAttachment({
+        data: base64,
+        type: isPdf ? "pdf" : "image",
+        mediaType: file.type,
+        name: file.name,
+      });
+    };
     reader.readAsDataURL(file);
   };
 
@@ -102,6 +171,15 @@ export default function ChatPage({ feature }) {
         <button className={styles.backBtn} onClick={() => navigate("/")}>
           ← Back
         </button>
+
+        {!isProfileComplete && (
+          <div
+            className={styles.profileBanner}
+            onClick={() => navigate("/profile")}
+          >
+            Complete your profile for personalized results →
+          </div>
+        )}
 
         <div className={styles.featureHeader}>
           <div className={styles.featureIcon} style={{ background: `${meta.color}22` }}>
@@ -124,23 +202,37 @@ export default function ChatPage({ feature }) {
           </div>
         )}
 
-        {/* Image upload */}
+        {/* Scholarship matches */}
+        {scholarships.length > 0 && (
+          <div className={styles.recs}>
+            <p className={styles.recsLabel}>Matches found</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {scholarships.map((s, i) => (
+                <ScholarshipCard key={s.name + i} scholarship={s} onSave={saveScholarship} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* File upload */}
         <div className={styles.uploadSection}>
           <p className={styles.uploadLabel}>Upload a document or image</p>
           <div
-            className={`${styles.dropZone} ${image ? styles.dropZoneFilled : ""}`}
+            className={`${styles.dropZone} ${attachment ? styles.dropZoneFilled : ""}`}
             onClick={() => fileRef.current?.click()}
             onDrop={(e) => { e.preventDefault(); handleFile(e.dataTransfer.files[0]); }}
             onDragOver={(e) => e.preventDefault()}
           >
-            {image
-              ? <img src={`data:image/jpeg;base64,${image}`} alt="preview" className={styles.dropPreview} />
+            {attachment
+              ? attachment.type === "image"
+                ? <img src={`data:${attachment.mediaType};base64,${attachment.data}`} alt="preview" className={styles.dropPreview} />
+                : <span className={styles.dropHint} style={{ color: "var(--text)" }}>📄 {attachment.name}</span>
               : <span className={styles.dropHint}>Drop or click to upload</span>
             }
           </div>
-          <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }}
+          <input ref={fileRef} type="file" accept="image/*,.pdf,application/pdf" style={{ display: "none" }}
             onChange={(e) => handleFile(e.target.files[0])} />
-          {image && <p className={styles.imageReady}>✓ Ready — ask a question to analyze</p>}
+          {attachment && <p className={styles.imageReady}>✓ Ready — ask a question to analyze</p>}
         </div>
 
         {messages.length > 0 && (
@@ -152,16 +244,23 @@ export default function ChatPage({ feature }) {
       <main className={styles.main}>
         <div className={styles.messages}>
           {messages.length === 0 && (
-            <div className={styles.starters}>
-              <p className={styles.startersLabel}>Try asking:</p>
-              <div className={styles.starterGrid}>
-                {starters.map((s, i) => (
-                  <button key={i} className={styles.starterBtn} onClick={() => handleSend(s)}>
-                    {s}
-                  </button>
-                ))}
+            autoStarted ? (
+              <div className={styles.starters}>
+                <p className={styles.startersLabel}>Personalizing your experience...</p>
+                <div className={styles.thinking}><span /><span /><span /></div>
               </div>
-            </div>
+            ) : (
+              <div className={styles.starters}>
+                <p className={styles.startersLabel}>Try asking:</p>
+                <div className={styles.starterGrid}>
+                  {starters.map((s, i) => (
+                    <button key={i} className={styles.starterBtn} onClick={() => handleSend(s)}>
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )
           )}
 
           {messages.map((msg, i) => (
@@ -172,7 +271,8 @@ export default function ChatPage({ feature }) {
                 {Array.isArray(msg.content)
                   ? msg.content.map((b, j) =>
                       b.type === "text" ? <p key={j}>{b.text}</p>
-                      : b.type === "image" ? <img key={j} src={`data:image/jpeg;base64,${b.source.data}`} alt="uploaded" className={styles.msgImage} />
+                      : b.type === "image" ? <img key={j} src={`data:${b.source.media_type};base64,${b.source.data}`} alt="uploaded" className={styles.msgImage} />
+                      : b.type === "document" ? <p key={j} style={{ fontSize: 12, color: "var(--text-50)" }}>📄 PDF attached</p>
                       : null
                     )
                   : msg.content.split("\n").map((line, j) => <p key={j}>{line}</p>)
@@ -192,12 +292,8 @@ export default function ChatPage({ feature }) {
 
           {error && <div className={styles.error}>⚠ {error}</div>}
 
-          {scholarships.length > 0 && (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 12, marginTop: 8 }}>
-              {scholarships.map((s, i) => (
-                <ScholarshipCard key={s.name + i} scholarship={s} onSave={saveScholarship} />
-              ))}
-            </div>
+          {roadmapMilestones.length > 0 && (
+            <RoadmapTimeline milestones={roadmapMilestones} />
           )}
 
           <div ref={bottomRef} />
@@ -205,10 +301,13 @@ export default function ChatPage({ feature }) {
 
         {/* Input */}
         <div className={styles.inputArea}>
-          {image && (
+          {attachment && (
             <div className={styles.imagePreview}>
-              <img src={`data:image/jpeg;base64,${image}`} alt="preview" />
-              <button onClick={() => setImage(null)}>✕</button>
+              {attachment.type === "image"
+                ? <img src={`data:${attachment.mediaType};base64,${attachment.data}`} alt="preview" />
+                : <span style={{ fontSize: 12, color: "var(--text-60)" }}>📄 {attachment.name}</span>
+              }
+              <button onClick={() => setAttachment(null)}>✕</button>
             </div>
           )}
           <div className={styles.inputRow}>
@@ -223,7 +322,7 @@ export default function ChatPage({ feature }) {
             <button
               className={styles.sendBtn}
               onClick={() => handleSend()}
-              disabled={isLoading || (!input.trim() && !image)}
+              disabled={isLoading || (!input.trim() && !attachment)}
               style={{ background: meta.color }}
             >
               {isLoading ? "…" : "Send"}

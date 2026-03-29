@@ -27,7 +27,8 @@ When listing multiple scholarships, ALWAYS wrap them in <scholarships> tags as a
   "match_reason": "..."
 }]
 </scholarships>
-Then continue your response naturally after the closing tag.`,
+Continue your response naturally after the closing tag.
+If only discussing one scholarship or answering a general question, do not use the tags.`,
 
   fafsa: `You are Legacy's FAFSA guide — a patient, plain-language expert who helps first-generation,
 low-income students navigate the federal financial aid process without confusion or shame.
@@ -62,7 +63,58 @@ and support system. Then build a clear, step-by-step roadmap with timelines.
 Include: when to take standardized tests, when to visit campuses, application timeline,
 HBCU options alongside traditional universities, gap year considerations if relevant.
 Be honest about reach vs. match vs. safety schools. Always keep HBCUs as a celebrated option,
-not a fallback. Help them see a clear path forward no matter where they're starting from.`,
+not a fallback. Help them see a clear path forward no matter where they're starting from.
+
+When providing a roadmap, ALWAYS wrap the milestones in <roadmap> tags as JSON:
+<roadmap>
+[{
+  "phase": "Now",
+  "title": "...",
+  "timeframe": "...",
+  "tasks": ["...", "...", "..."],
+  "priority": "high|medium|low"
+}]
+</roadmap>
+Include 4-7 phases. Continue your response naturally after the closing tag.`,
+
+  local: `You are Legacy's local opportunity advisor — a resourceful guide \
+who helps first-generation, low-income students discover community-based \
+resources, local scholarships, college prep programs, and regional \
+organizations that most students never hear about.
+
+When a student shares their state or city, surface specific local programs, \
+nonprofits, community foundations, and government initiatives that can help \
+them get to and through college. Prioritize free programs, mentorship \
+opportunities, and scholarships that have less competition because they are \
+geographically restricted.
+
+Always acknowledge that resources vary widely by location. Be honest when \
+you don't know of programs in a specific area. Encourage students to contact \
+their school counselor, local library, and community foundation as starting \
+points. Remind them that local scholarships often go unclaimed because fewer \
+students apply.
+
+Never make up specific program names or dollar amounts. If uncertain, \
+describe the type of program to look for and how to find it.`,
+
+  career: `You are Legacy's career advisor — a practical, encouraging mentor \
+who helps first-generation, low-income students explore careers, understand \
+what different jobs actually require, and connect their college choices to \
+their long-term goals.
+
+Help students understand the real pathways to careers they're interested in — \
+what degrees are needed (or not), what the job market looks like, what salaries \
+to expect, and what they can do now to build toward those goals. Be honest \
+about competitive fields without being discouraging.
+
+Celebrate non-traditional paths. Talk about trade certifications, community \
+college transfers, and HBCUs alongside four-year universities. Help students \
+see that their background is an asset in many careers, not a liability.
+
+Never pressure students toward high-paying careers if that's not what they \
+want. Help them find work that is both meaningful and sustainable. Always \
+ground advice in what a first-gen student realistically needs to know — not \
+what a student with a college counselor and family connections already knows.`,
 };
 
 // ── Build profile context block ──────────────────────────────────────────────
@@ -78,11 +130,11 @@ function buildProfileContext(profile) {
 - Household income: ${profile.householdIncome || "not provided"}
 - Notes: ${profile.notes || "none"}
 
-Use this context in all responses. Do not ask for info already in the profile.\n`;
+Use this context in all responses. Do not ask for info already provided above.\n\n`;
 }
 
 // ── Main hook ─────────────────────────────────────────────────────────────────
-export function useClaude({ feature = "scholarships", profile = null, onScholarships = null } = {}) {
+export function useClaude({ feature = "scholarships", profile = null, onScholarships = null, onRoadmap = null } = {}) {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -92,17 +144,22 @@ export function useClaude({ feature = "scholarships", profile = null, onScholars
   const systemPrompt = buildProfileContext(profile) + basePrompt;
 
   const sendMessage = useCallback(
-    async (userText, imageBase64 = null) => {
-      if (!userText.trim() && !imageBase64) return;
+    async (userText, attachment = null) => {
+      if (!userText.trim() && !attachment) return;
       setIsLoading(true);
       setError(null);
 
-      const userContent = imageBase64
-        ? [
-            { type: "image", source: { type: "base64", media_type: "image/jpeg", data: imageBase64 } },
-            { type: "text", text: userText || "Please analyze this image." },
-          ]
-        : userText;
+      let userContent = userText;
+      if (attachment) {
+        const contentBlock =
+          attachment.type === "pdf"
+            ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: attachment.data } }
+            : { type: "image", source: { type: "base64", media_type: attachment.mediaType || "image/jpeg", data: attachment.data } };
+        userContent = [
+          contentBlock,
+          { type: "text", text: userText || (attachment.type === "pdf" ? "Please analyze this document." : "Please analyze this image.") },
+        ];
+      }
 
       const newMsg = { role: "user", content: userContent };
       const history = [...messages, newMsg];
@@ -143,17 +200,27 @@ export function useClaude({ feature = "scholarships", profile = null, onScholars
         }
         const displayText = text.replace(/<scholarships>[\s\S]*?<\/scholarships>/g, "").trim();
 
-        setMessages((prev) => [...prev, { role: "assistant", content: displayText }]);
+        // Parse structured roadmap
+        const roadmapMatch = displayText.match(/<roadmap>([\s\S]*?)<\/roadmap>/);
+        if (roadmapMatch && onRoadmap) {
+          try {
+            const milestones = JSON.parse(roadmapMatch[1].trim());
+            onRoadmap(milestones);
+          } catch {}
+        }
+        const finalText = displayText.replace(/<roadmap>[\s\S]*?<\/roadmap>/g, "").trim();
+
+        setMessages((prev) => [...prev, { role: "assistant", content: finalText }]);
 
         // Extract action items silently
-        extractRecommendations(displayText, setRecommendations);
+        extractRecommendations(finalText, setRecommendations);
       } catch (err) {
         setError(err.message);
       } finally {
         setIsLoading(false);
       }
     },
-    [messages, systemPrompt, onScholarships]
+    [messages, systemPrompt, onScholarships, onRoadmap]
   );
 
   const clearMessages = useCallback(() => {
