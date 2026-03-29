@@ -63,7 +63,19 @@ and support system. Then build a clear, step-by-step roadmap with timelines.
 Include: when to take standardized tests, when to visit campuses, application timeline,
 HBCU options alongside traditional universities, gap year considerations if relevant.
 Be honest about reach vs. match vs. safety schools. Always keep HBCUs as a celebrated option,
-not a fallback. Help them see a clear path forward no matter where they're starting from.`,
+not a fallback. Help them see a clear path forward no matter where they're starting from.
+
+When providing a roadmap, ALWAYS wrap the milestones in <roadmap> tags as JSON:
+<roadmap>
+[{
+  "phase": "Now",
+  "title": "...",
+  "timeframe": "...",
+  "tasks": ["...", "...", "..."],
+  "priority": "high|medium|low"
+}]
+</roadmap>
+Include 4-7 phases. Continue your response naturally after the closing tag.`,
 };
 
 // ── Build profile context block ──────────────────────────────────────────────
@@ -83,7 +95,7 @@ Use this context in all responses. Do not ask for info already provided above.\n
 }
 
 // ── Main hook ─────────────────────────────────────────────────────────────────
-export function useClaude({ feature = "scholarships", profile = null, onScholarships = null } = {}) {
+export function useClaude({ feature = "scholarships", profile = null, onScholarships = null, onRoadmap = null } = {}) {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -144,17 +156,27 @@ export function useClaude({ feature = "scholarships", profile = null, onScholars
         }
         const displayText = text.replace(/<scholarships>[\s\S]*?<\/scholarships>/g, "").trim();
 
-        setMessages((prev) => [...prev, { role: "assistant", content: displayText }]);
+        // Parse structured roadmap
+        const roadmapMatch = displayText.match(/<roadmap>([\s\S]*?)<\/roadmap>/);
+        if (roadmapMatch && onRoadmap) {
+          try {
+            const milestones = JSON.parse(roadmapMatch[1].trim());
+            onRoadmap(milestones);
+          } catch {}
+        }
+        const finalText = displayText.replace(/<roadmap>[\s\S]*?<\/roadmap>/g, "").trim();
+
+        setMessages((prev) => [...prev, { role: "assistant", content: finalText }]);
 
         // Extract action items silently
-        extractRecommendations(displayText, setRecommendations);
+        extractRecommendations(finalText, setRecommendations);
       } catch (err) {
         setError(err.message);
       } finally {
         setIsLoading(false);
       }
     },
-    [messages, systemPrompt, onScholarships]
+    [messages, systemPrompt, onScholarships, onRoadmap]
   );
 
   const clearMessages = useCallback(() => {

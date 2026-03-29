@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useClaude } from "../hooks/useClaude";
 import { useProfile } from "../hooks/useProfile";
 import ScholarshipCard from "../components/ScholarshipCard";
+import RoadmapTimeline from "../components/RoadmapTimeline";
 import styles from "./ChatPage.module.css";
 
 // ── Starter prompts per feature ───────────────────────────────────────────────
@@ -47,6 +48,7 @@ export default function ChatPage({ feature }) {
   const [input, setInput] = useState("");
   const [image, setImage] = useState(null);
   const [scholarships, setScholarships] = useState([]);
+  const [roadmapMilestones, setRoadmapMilestones] = useState([]);
   const bottomRef = useRef(null);
   const fileRef = useRef(null);
   const meta = FEATURE_META[feature];
@@ -56,6 +58,10 @@ export default function ChatPage({ feature }) {
 
   const handleScholarships = useCallback((results) => {
     setScholarships((prev) => [...prev, ...results]);
+  }, []);
+
+  const handleRoadmap = useCallback((milestones) => {
+    setRoadmapMilestones(milestones);
   }, []);
 
   const saveScholarship = useCallback((scholarship) => {
@@ -71,6 +77,7 @@ export default function ChatPage({ feature }) {
     feature,
     profile,
     onScholarships: feature === "scholarships" ? handleScholarships : null,
+    onRoadmap: feature === "roadmap" ? handleRoadmap : null,
   });
 
   useEffect(() => {
@@ -212,6 +219,11 @@ export default function ChatPage({ feature }) {
           )}
 
           {error && <div className={styles.error}>⚠ {error}</div>}
+
+          {roadmapMilestones.length > 0 && (
+            <RoadmapTimeline milestones={roadmapMilestones} />
+          )}
+
           <div ref={bottomRef} />
         </div>
 
