@@ -5,8 +5,11 @@ import { useProfile } from "../hooks/useProfile";
 import { useChatHistory } from "../hooks/useChatHistory";
 import { useRateLimit } from "../hooks/useRateLimit";
 import { useResources } from "../hooks/useResources";
+import { useAllSessions } from "../hooks/useAllSessions";
+import { useAuth } from "../hooks/useAuth";
 import ScholarshipCard from "../components/ScholarshipCard";
 import RoadmapTimeline from "../components/RoadmapTimeline";
+import ChatDrawer from "../components/ChatDrawer";
 import { supabase } from "../lib/supabase";
 import styles from "./ChatPage.module.css";
 
@@ -67,7 +70,7 @@ export default function ChatPage({ feature }) {
   const [roadmapMilestones, setRoadmapMilestones] = useState([]);
   const [autoStarted, setAutoStarted] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 640);
-  const [featureSwitcher, setFeatureSwitcher] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false); // mobile slide-out
   const bottomRef = useRef(null);
   const fileRef = useRef(null);
   const meta = FEATURE_META[feature];
@@ -77,6 +80,8 @@ export default function ChatPage({ feature }) {
   const { savedMessages, historyLoading, saveMessage, startNewSession } = useChatHistory(feature);
   const { remaining, isLimited, increment } = useRateLimit();
   const { resources } = useResources(feature);
+  const { sessions } = useAllSessions();
+  const { signOut } = useAuth();
 
   // Track mobile viewport
   useEffect(() => {
@@ -328,6 +333,50 @@ export default function ChatPage({ feature }) {
 
       {/* Chat */}
       <main className={styles.main}>
+        {/* Mobile top bar */}
+        {isMobile && (
+          <div style={{
+            display: "flex", alignItems: "center",
+            padding: "0 12px", height: 52,
+            borderBottom: "0.5px solid var(--border)",
+            background: "rgba(255,255,255,0.02)",
+            flexShrink: 0,
+          }}>
+            <button
+              onClick={() => setDrawerOpen(true)}
+              style={{
+                background: "rgba(255,255,255,0.06)",
+                border: "0.5px solid var(--border)",
+                borderRadius: 8, color: "var(--text-60)",
+                width: 36, height: 36, fontSize: 16,
+                cursor: "pointer", flexShrink: 0,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+            >
+              ☰
+            </button>
+            <span style={{
+              flex: 1, textAlign: "center", fontSize: 14,
+              fontWeight: 700, color: "var(--text)",
+            }}>
+              {meta.icon} {meta.title}
+            </span>
+            <button
+              onClick={() => { clearMessages(); startNewSession?.(); }}
+              style={{
+                background: "rgba(0,119,182,0.2)",
+                border: "0.5px solid rgba(0,119,182,0.4)",
+                borderRadius: 8, color: "#48cae4",
+                width: 36, height: 36, fontSize: 18,
+                cursor: "pointer", flexShrink: 0,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+            >
+              +
+            </button>
+          </div>
+        )}
+
         <div className={styles.messages}>
           {messages.length === 0 && (
             autoStarted ? (
@@ -436,62 +485,24 @@ export default function ChatPage({ feature }) {
         </div>
       </main>
 
-      {/* Mobile bottom nav — Part 5 */}
+      {/* Mobile drawer */}
       {isMobile && (
-        <nav className={styles.mobileNav}>
-          <button className={styles.mobileNavBtn} onClick={() => navigate("/")}>
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path d="M13 16L7 10L13 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            <span>Back</span>
-          </button>
-          <button className={`${styles.mobileNavBtn} ${styles.mobileNavActive}`}>
-            <span style={{ fontSize: 18 }}>{meta.icon}</span>
-            <span>{meta.title.split(" ")[0]}</span>
-          </button>
-          <button className={styles.mobileNavBtn} onClick={() => setFeatureSwitcher(true)}>
-            <span style={{ fontSize: 16 }}>☰</span>
-            <span>Tools</span>
-          </button>
-        </nav>
-      )}
-
-      {/* Feature switcher sheet — mobile */}
-      {featureSwitcher && (
-        <div className={styles.switcherOverlay} onClick={() => setFeatureSwitcher(false)}>
-          <div className={styles.switcherSheet} onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>Switch tool</span>
-              <button
-                onClick={() => setFeatureSwitcher(false)}
-                style={{ background: "none", border: "none", color: "var(--text-40)", fontSize: 18, cursor: "pointer" }}
-              >✕</button>
-            </div>
-            {Object.entries(FEATURE_META).map(([key, m]) => (
-              <button
-                key={key}
-                onClick={() => { navigate(`/${key}`); setFeatureSwitcher(false); }}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  width: "100%",
-                  padding: "14px 12px",
-                  background: key === feature ? "rgba(255,255,255,0.06)" : "transparent",
-                  border: "none",
-                  borderBottom: "0.5px solid var(--border)",
-                  color: key === feature ? "var(--text)" : "var(--text-60)",
-                  fontSize: 14,
-                  textAlign: "left",
-                  cursor: "pointer",
-                }}
-              >
-                <span style={{ fontSize: 18 }}>{m.icon}</span>
-                <span>{m.title}</span>
-              </button>
-            ))}
-          </div>
-        </div>
+        <ChatDrawer
+          isOpen={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          currentFeature={feature}
+          sessions={sessions}
+          resources={resources}
+          onSelectSession={(sessionId) => {
+            setDrawerOpen(false);
+          }}
+          onNewChat={() => {
+            clearMessages();
+            startNewSession?.();
+          }}
+          profile={profile}
+          onSignOut={signOut}
+        />
       )}
     </div>
   );
