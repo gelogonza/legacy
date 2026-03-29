@@ -80,7 +80,7 @@ describe("Landing page", () => {
 
   it("shows default subtext when no profile", () => {
     renderLanding();
-    expect(screen.getByText(/college counselor every first-gen student/)).toBeInTheDocument();
+    expect(screen.getAllByText(/college counselor every first-gen student deserves/).length).toBeGreaterThanOrEqual(1);
   });
 
   it("shows 'Set up profile' nav link when no profile", () => {
@@ -136,7 +136,7 @@ describe("Landing page", () => {
     localStorage.setItem("legacy_profile", JSON.stringify(completeProfile));
     renderLanding();
     fireEvent.click(screen.getByTitle("Maria"));
-    fireEvent.click(screen.getByText("My Profile"));
+    fireEvent.click(screen.getAllByText("My Profile")[0]);
     expect(mockNavigate).toHaveBeenCalledWith("/profile");
   });
 
@@ -173,26 +173,27 @@ describe("Landing page", () => {
   });
 
   // ── Feature cards ───────────────────────────────────────────────────────
-  it("renders all four feature cards", () => {
+  it("renders all six feature cards", () => {
     renderLanding();
-    expect(screen.getByText("Scholarship matcher")).toBeInTheDocument();
-    expect(screen.getByText("FAFSA guide")).toBeInTheDocument();
-    expect(screen.getByText("Essay coach")).toBeInTheDocument();
-    expect(screen.getByText("College roadmap")).toBeInTheDocument();
+    expect(screen.getAllByText("Scholarship Matcher").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("FAFSA Guide").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Essay Coach").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("College Roadmap").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Local Opportunities").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Career Advisor").length).toBeGreaterThanOrEqual(1);
   });
 
   it("feature card navigates to correct route", () => {
     renderLanding();
-    fireEvent.click(screen.getByText("FAFSA guide"));
+    fireEvent.click(screen.getAllByText("FAFSA Guide")[0]);
     expect(mockNavigate).toHaveBeenCalledWith("/fafsa");
   });
 
   // ── Stats ───────────────────────────────────────────────────────────────
   it("renders stats section", () => {
     renderLanding();
-    expect(screen.getByText("$7B+")).toBeInTheDocument();
-    expect(screen.getByText("1 in 4")).toBeInTheDocument();
-    expect(screen.getByText("Free")).toBeInTheDocument();
+    expect(screen.getAllByText("$7B+").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("1 in 4").length).toBeGreaterThanOrEqual(1);
   });
 
   // ── Banner edge cases ──────────────────────────────────────────────────
