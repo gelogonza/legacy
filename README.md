@@ -256,14 +256,38 @@ Auth uses Supabase Auth with implicit flow. Session persists across refreshes vi
 
 ## Design Tokens
 
-All colors defined in `tokens.css`:
+All tokens defined in `tokens.css` (pulled from Figma `jwlovde9rXOwTkdffZuOoj`):
 
 ```css
---orange:       #0077b6   /* Primary action (Bright Teal Blue) */
---green:        #00b4d8   /* Secondary (Turquoise Surf) */
---green-light:  #48cae4   /* Tertiary (Sky Aqua) */
---amber:        #90e0ef   /* Highlight (Frosted Blue) */
---bg:           #020c18   /* Deep navy background */
+/* Brand colors — teal/blue palette */
+--orange:        #0077b6   /* Primary action (Bright Teal Blue) */
+--orange-dark:   #005f92   /* Hover/pressed state */
+--orange-light:  #0096c7   /* Lighter accent (Blue Green) */
+--green:         #00b4d8   /* Secondary (Turquoise Surf) */
+--green-light:   #48cae4   /* Tertiary (Sky Aqua) */
+--amber:         #90e0ef   /* Highlight (Frosted Blue) */
+
+/* Backgrounds */
+--bg:            #020c18   /* Deep navy */
+--surface:       rgba(255, 255, 255, 0.05)
+--surface-hover: rgba(255, 255, 255, 0.09)
+
+/* Text */
+--text:          #f0ede6
+--text-70:       rgba(240, 237, 230, 0.7)
+--text-60:       rgba(240, 237, 230, 0.6)
+--text-50:       rgba(240, 237, 230, 0.5)
+--text-40:       rgba(240, 237, 230, 0.4)
+
+/* Borders */
+--border:        rgba(255, 255, 255, 0.08)
+--border-20:     rgba(255, 255, 255, 0.2)
+
+/* Spacing / Radii */
+--radius-sm:     8px
+--radius-md:     10px
+--radius-lg:     12px
+--radius-pill:   20px
 ```
 
 Fonts: **Geist** (display + body), **Playfair Display** (hero italic accent).
