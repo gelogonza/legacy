@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { Analytics } from "@vercel/analytics/react";
 import { useAuth } from "./hooks/useAuth";
 import Landing from "./pages/Landing";
 import ChatPage from "./pages/ChatPage";
@@ -54,20 +55,23 @@ function AuthCallback() {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/auth/callback" element={<AuthCallback />} />
-        <Route path="/auth" element={<Auth />} />
-        <Route path="/"             element={<Landing />} />
-        <Route path="/scholarships" element={<ProtectedRoute><ChatPage feature="scholarships" /></ProtectedRoute>} />
-        <Route path="/fafsa"        element={<ProtectedRoute><ChatPage feature="fafsa" /></ProtectedRoute>} />
-        <Route path="/essay"        element={<ProtectedRoute><ChatPage feature="essay" /></ProtectedRoute>} />
-        <Route path="/roadmap"      element={<ProtectedRoute><ChatPage feature="roadmap" /></ProtectedRoute>} />
-        <Route path="/local"        element={<ProtectedRoute><ChatPage feature="local" /></ProtectedRoute>} />
-        <Route path="/career"       element={<ProtectedRoute><ChatPage feature="career" /></ProtectedRoute>} />
-        <Route path="/tracker"      element={<ProtectedRoute><Tracker /></ProtectedRoute>} />
-        <Route path="/profile"      element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-      </Routes>
-    </BrowserRouter>
+    <>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/"             element={<Landing />} />
+          <Route path="/scholarships" element={<ProtectedRoute><ChatPage feature="scholarships" /></ProtectedRoute>} />
+          <Route path="/fafsa"        element={<ProtectedRoute><ChatPage feature="fafsa" /></ProtectedRoute>} />
+          <Route path="/essay"        element={<ProtectedRoute><ChatPage feature="essay" /></ProtectedRoute>} />
+          <Route path="/roadmap"      element={<ProtectedRoute><ChatPage feature="roadmap" /></ProtectedRoute>} />
+          <Route path="/local"        element={<ProtectedRoute><ChatPage feature="local" /></ProtectedRoute>} />
+          <Route path="/career"       element={<ProtectedRoute><ChatPage feature="career" /></ProtectedRoute>} />
+          <Route path="/tracker"      element={<ProtectedRoute><Tracker /></ProtectedRoute>} />
+          <Route path="/profile"      element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+        </Routes>
+      </BrowserRouter>
+      <Analytics />
+    </>
   );
 }
