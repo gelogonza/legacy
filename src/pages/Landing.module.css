@@ -45,6 +45,51 @@
   gap: 24px;
 }
 
+/* Burger button — hidden on desktop */
+.burgerBtn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  position: absolute;
+  right: 20px;
+}
+
+/* Mobile dropdown menu */
+.mobileMenu {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .navLinks { display: none !important; }
+  .burgerBtn { display: flex; }
+  .mobileMenu {
+    display: flex;
+    position: fixed;
+    top: 64px;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: rgba(2, 12, 24, 0.96);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
+    padding: 16px 24px;
+    flex-direction: column;
+    gap: 0;
+  }
+  .mobileMenuItem {
+    padding: 16px 0;
+    border-bottom: 0.5px solid rgba(255, 255, 255, 0.08);
+    font-size: 16px;
+    color: #fff;
+    cursor: pointer;
+  }
+}
+
 .navLink {
   position: relative;
   font-size: 13px;

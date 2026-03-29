@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProfile } from "../hooks/useProfile";
 import { useAuth } from "../hooks/useAuth";
@@ -85,6 +85,7 @@ export default function Landing() {
   const navigate = useNavigate();
   const { user, authLoading, signOut } = useAuth();
   const { profile, isProfileComplete, loading } = useProfile();
+  const [menuOpen, setMenuOpen] = useState(false);
   const revealRefs = useRef([]);
   const cta = CTA_MAP[profile.profileType] || CTA_MAP.highschool;
   const isLoading = authLoading || loading;
@@ -95,6 +96,14 @@ export default function Landing() {
   function addReveal(el) {
     if (el) revealRefs.current.push(el);
   }
+
+  // Close mobile menu on outside click
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = () => setMenuOpen(false);
+    document.addEventListener("click", handler);
+    return () => document.removeEventListener("click", handler);
+  }, [menuOpen]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -153,7 +162,62 @@ export default function Landing() {
               </span>
             )}
           </div>
+
+          {/* Burger button — mobile only */}
+          <button
+            className={styles.burgerBtn}
+            onClick={(e) => { e.stopPropagation(); setMenuOpen((v) => !v); }}
+            aria-label="Menu"
+          >
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+              <line x1="3" y1="6" x2="19" y2="6" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" />
+              <line x1="3" y1="11" x2="19" y2="11" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" />
+              <line x1="3" y1="16" x2="19" y2="16" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </button>
         </nav>
+
+        {/* Mobile dropdown menu */}
+        {menuOpen && (
+          <div
+            className={styles.mobileMenu}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {!isLoading && user && isProfileComplete && (
+              <div
+                className={styles.mobileMenuItem}
+                onClick={() => { navigate("/profile"); setMenuOpen(false); }}
+              >
+                {profile.name}
+              </div>
+            )}
+            {user && (
+              <div
+                className={styles.mobileMenuItem}
+                onClick={() => { navigate("/tracker"); setMenuOpen(false); }}
+              >
+                My Scholarships
+              </div>
+            )}
+            {!isLoading && user && !isProfileComplete && (
+              <div
+                className={styles.mobileMenuItem}
+                onClick={() => { navigate("/profile"); setMenuOpen(false); }}
+              >
+                Set up profile →
+              </div>
+            )}
+            {user && (
+              <div
+                className={styles.mobileMenuItem}
+                style={{ color: "rgba(255,255,255,0.45)" }}
+                onClick={() => { signOut(); setMenuOpen(false); }}
+              >
+                Sign out
+              </div>
+            )}
+          </div>
+        )}
 
         {isLoading ? (
           <div className={styles.heroContent}>
