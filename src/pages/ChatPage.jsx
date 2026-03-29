@@ -11,6 +11,7 @@ import ScholarshipCard from "../components/ScholarshipCard";
 import RoadmapTimeline from "../components/RoadmapTimeline";
 import ChatDrawer from "../components/ChatDrawer";
 import { supabase } from "../lib/supabase";
+import ReactMarkdown from "react-markdown";
 import styles from "./ChatPage.module.css";
 
 // ── Starter prompts per feature ───────────────────────────────────────────────
@@ -60,6 +61,60 @@ const FEATURE_META = {
   roadmap:      { title: "College Roadmap",      icon: "🗺️", color: "var(--green-light)" },
   local:        { title: "Local Opportunities", icon: "📍", color: "var(--green)" },
   career:       { title: "Career Advisor",      icon: "💼", color: "var(--amber)" },
+};
+
+const markdownComponents = {
+  p: ({ children }) => (
+    <p style={{ margin: "0 0 8px", lineHeight: 1.65 }}>{children}</p>
+  ),
+  strong: ({ children }) => (
+    <strong style={{ fontWeight: 700, color: "var(--text)" }}>{children}</strong>
+  ),
+  h1: ({ children }) => (
+    <p style={{ fontWeight: 700, fontSize: 15, margin: "12px 0 6px", color: "var(--text)", lineHeight: 1.3 }}>{children}</p>
+  ),
+  h2: ({ children }) => (
+    <p style={{ fontWeight: 700, fontSize: 14, margin: "10px 0 4px", color: "var(--text)", lineHeight: 1.3 }}>{children}</p>
+  ),
+  h3: ({ children }) => (
+    <p style={{ fontWeight: 700, fontSize: 13, margin: "8px 0 4px", color: "var(--text-70)", lineHeight: 1.3 }}>{children}</p>
+  ),
+  ul: ({ children }) => (
+    <ul style={{ margin: "4px 0 8px", paddingLeft: 18, lineHeight: 1.65 }}>{children}</ul>
+  ),
+  ol: ({ children }) => (
+    <ol style={{ margin: "4px 0 8px", paddingLeft: 18, lineHeight: 1.65 }}>{children}</ol>
+  ),
+  li: ({ children }) => (
+    <li style={{ marginBottom: 4, color: "var(--text-70)", fontSize: 14 }}>{children}</li>
+  ),
+  code: ({ inline, children }) =>
+    inline ? (
+      <code style={{
+        background: "rgba(255,255,255,0.1)", borderRadius: 4,
+        padding: "1px 6px", fontSize: 12, fontFamily: "monospace",
+        color: "var(--green-light)",
+      }}>{children}</code>
+    ) : (
+      <pre style={{
+        background: "rgba(0,0,0,0.3)", borderRadius: 8,
+        padding: "12px 14px", fontSize: 12, fontFamily: "monospace",
+        overflowX: "auto", margin: "8px 0", color: "var(--green-light)",
+        lineHeight: 1.6,
+      }}><code>{children}</code></pre>
+    ),
+  hr: () => (
+    <hr style={{ border: "none", borderTop: "0.5px solid var(--border)", margin: "12px 0" }} />
+  ),
+  a: ({ href, children }) => (
+    <a href={href} target="_blank" rel="noopener noreferrer"
+      style={{ color: "var(--green-light)", textDecoration: "underline" }}>
+      {children}
+    </a>
+  ),
+  em: ({ children }) => (
+    <em style={{ fontStyle: "italic", color: "var(--text-70)" }}>{children}</em>
+  ),
 };
 
 export default function ChatPage({ feature }) {
@@ -403,15 +458,21 @@ export default function ChatPage({ feature }) {
               <span className={styles.messageLabel}>{msg.role === "user" ? "You" : "Legacy AI"}</span>
               <div className={styles.messageBubble}
                 style={msg.role === "assistant" ? {} : { borderColor: meta.color }}>
-                {Array.isArray(msg.content)
-                  ? msg.content.map((b, j) =>
-                      b.type === "text" ? <p key={j}>{b.text}</p>
-                      : b.type === "image" ? <img key={j} src={`data:${b.source.media_type};base64,${b.source.data}`} alt="uploaded" className={styles.msgImage} />
-                      : b.type === "document" ? <p key={j} style={{ fontSize: 12, color: "var(--text-50)" }}>📄 PDF attached</p>
-                      : null
-                    )
-                  : msg.content.split("\n").map((line, j) => <p key={j}>{line}</p>)
-                }
+                {Array.isArray(msg.content) ? (
+                  msg.content.map((b, j) =>
+                    b.type === "text" ? (
+                      <ReactMarkdown key={j} components={markdownComponents}>{b.text}</ReactMarkdown>
+                    ) : b.type === "image" ? (
+                      <img key={j} src={`data:${b.source.media_type};base64,${b.source.data}`} alt="uploaded" className={styles.msgImage} />
+                    ) : b.type === "document" ? (
+                      <p key={j} style={{ fontSize: 12, color: "var(--text-50)" }}>📄 PDF attached</p>
+                    ) : null
+                  )
+                ) : msg.role === "assistant" ? (
+                  <ReactMarkdown components={markdownComponents}>{msg.content}</ReactMarkdown>
+                ) : (
+                  <p style={{ margin: 0, whiteSpace: "pre-wrap" }}>{msg.content}</p>
+                )}
               </div>
             </div>
           ))}
