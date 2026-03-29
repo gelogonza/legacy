@@ -105,17 +105,22 @@ export function useClaude({ feature = "scholarships", profile = null, onScholars
   const systemPrompt = buildProfileContext(profile) + basePrompt;
 
   const sendMessage = useCallback(
-    async (userText, imageBase64 = null) => {
-      if (!userText.trim() && !imageBase64) return;
+    async (userText, attachment = null) => {
+      if (!userText.trim() && !attachment) return;
       setIsLoading(true);
       setError(null);
 
-      const userContent = imageBase64
-        ? [
-            { type: "image", source: { type: "base64", media_type: "image/jpeg", data: imageBase64 } },
-            { type: "text", text: userText || "Please analyze this image." },
-          ]
-        : userText;
+      let userContent = userText;
+      if (attachment) {
+        const contentBlock =
+          attachment.type === "pdf"
+            ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: attachment.data } }
+            : { type: "image", source: { type: "base64", media_type: attachment.mediaType || "image/jpeg", data: attachment.data } };
+        userContent = [
+          contentBlock,
+          { type: "text", text: userText || (attachment.type === "pdf" ? "Please analyze this document." : "Please analyze this image.") },
+        ];
+      }
 
       const newMsg = { role: "user", content: userContent };
       const history = [...messages, newMsg];

@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 
 export const EMPTY_PROFILE = {
+  profileType: "",   // "highschool" | "college" | "returning" | "military"
   name: "",
-  grade: "",        // "9th" | "10th" | "11th" | "12th" | "College"
+  grade: "",         // "9th" | "10th" | "11th" | "12th" | "College"
   gpa: "",
   state: "",
   majorInterest: "",
@@ -26,12 +27,19 @@ export function useProfile() {
   }, [profile]);
 
   const updateProfile = (fields) =>
-    setProfile((prev) => ({ ...prev, ...fields }));
+    setProfile((prev) => {
+      const next = { ...prev, ...fields };
+      localStorage.setItem("legacy_profile", JSON.stringify(next));
+      return next;
+    });
 
-  const clearProfile = () => setProfile(EMPTY_PROFILE);
+  const clearProfile = () => {
+    localStorage.setItem("legacy_profile", JSON.stringify(EMPTY_PROFILE));
+    setProfile(EMPTY_PROFILE);
+  };
 
   const isProfileComplete = !!(
-    profile.name && profile.grade && profile.state
+    profile.profileType && profile.name && profile.grade && profile.state
   );
 
   return { profile, updateProfile, clearProfile, isProfileComplete };

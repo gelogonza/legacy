@@ -51,7 +51,7 @@ export default function Profile() {
   const [notes, setNotes] = useState(profile.notes || "");
   const [firstGen, setFirstGen] = useState(profile.firstGen ?? true);
 
-  const canSave = name.trim() && profileType && state;
+  const canSave = name.trim() && profileType && grade && state;
 
   const handleSave = () => {
     updateProfile({
