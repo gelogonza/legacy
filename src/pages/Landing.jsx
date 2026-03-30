@@ -598,7 +598,7 @@ export default function Landing() {
 
         <div className={styles.footerBottom}>
           <p className={styles.footerCopy}>
-            © {new Date().getFullYear()} Legacy. Built by students, for students.
+            © {new Date().getFullYear()} Legacy. All rights reserved.
           </p>
           <p className={styles.footerCopy}>
             <a
