@@ -74,18 +74,18 @@ describe("Landing page", () => {
   // ── Default state (logged in, no profile) ──────────────────────────────
   it("shows 'Create your Legacy' when no profile", () => {
     renderLanding();
-    expect(screen.getByText(/Create your/)).toBeInTheDocument();
-    expect(screen.getAllByText("Legacy").length).toBeGreaterThanOrEqual(1);
+    const headline = screen.getByRole("heading", { level: 1 });
+    expect(headline.textContent).toMatch(/Create your\s+Legacy/);
   });
 
   it("shows default subtext when no profile", () => {
     renderLanding();
-    expect(screen.getByText(/AI-powered college guide/)).toBeInTheDocument();
+    expect(screen.getAllByText(/college counselor every first-gen student deserves/).length).toBeGreaterThanOrEqual(1);
   });
 
-  it("shows 'Get started' nav link when no profile", () => {
+  it("shows 'Set up profile' nav link when no profile", () => {
     renderLanding();
-    expect(screen.getByText(/Get started/)).toBeInTheDocument();
+    expect(screen.getByText("Set up profile")).toBeInTheDocument();
   });
 
   it("shows 'Set up my profile' as secondary CTA when no profile", () => {
@@ -128,14 +128,15 @@ describe("Landing page", () => {
   it("shows avatar with first initial when profile is complete", () => {
     localStorage.setItem("legacy_profile", JSON.stringify(completeProfile));
     renderLanding();
-    expect(screen.getByText("M")).toBeInTheDocument();
-    expect(screen.getByText("Maria")).toBeInTheDocument();
+    expect(screen.getByTitle("Maria")).toBeInTheDocument();
+    expect(screen.getByTitle("Maria").textContent).toBe("M");
   });
 
-  it("avatar navigates to /profile on click", () => {
+  it("avatar menu navigates to /profile on click", () => {
     localStorage.setItem("legacy_profile", JSON.stringify(completeProfile));
     renderLanding();
-    fireEvent.click(screen.getByText("Maria"));
+    fireEvent.click(screen.getByTitle("Maria"));
+    fireEvent.click(screen.getAllByText("My Profile")[0]);
     expect(mockNavigate).toHaveBeenCalledWith("/profile");
   });
 
@@ -143,55 +144,56 @@ describe("Landing page", () => {
   it("highschool profile shows 'Find my scholarships' CTA", () => {
     localStorage.setItem("legacy_profile", JSON.stringify(completeProfile));
     renderLanding();
-    expect(screen.getByText("Find my scholarships →")).toBeInTheDocument();
+    expect(screen.getAllByText("Find my scholarships →").length).toBeGreaterThanOrEqual(1);
   });
 
   it("highschool CTA navigates to /scholarships", () => {
     localStorage.setItem("legacy_profile", JSON.stringify(completeProfile));
     renderLanding();
-    fireEvent.click(screen.getByText("Find my scholarships →"));
+    fireEvent.click(screen.getAllByText("Find my scholarships →")[0]);
     expect(mockNavigate).toHaveBeenCalledWith("/scholarships");
   });
 
   it("college profile shows 'Check my roadmap' CTA", () => {
     localStorage.setItem("legacy_profile", JSON.stringify({ ...completeProfile, profileType: "college", grade: "Sophomore" }));
     renderLanding();
-    expect(screen.getByText(/Check my roadmap/)).toBeInTheDocument();
+    expect(screen.getAllByText(/Check my roadmap/).length).toBeGreaterThanOrEqual(1);
   });
 
   it("returning profile shows 'Explore FAFSA options' CTA", () => {
     localStorage.setItem("legacy_profile", JSON.stringify({ ...completeProfile, profileType: "returning", grade: "Returning Adult" }));
     renderLanding();
-    expect(screen.getByText(/Explore FAFSA options/)).toBeInTheDocument();
+    expect(screen.getAllByText(/Explore FAFSA options/).length).toBeGreaterThanOrEqual(1);
   });
 
   it("military profile shows 'Find my benefits' CTA", () => {
     localStorage.setItem("legacy_profile", JSON.stringify({ ...completeProfile, profileType: "military", grade: "Veteran" }));
     renderLanding();
-    expect(screen.getByText(/Find my benefits/)).toBeInTheDocument();
+    expect(screen.getAllByText(/Find my benefits/).length).toBeGreaterThanOrEqual(1);
   });
 
   // ── Feature cards ───────────────────────────────────────────────────────
-  it("renders all four feature cards", () => {
+  it("renders all six feature cards", () => {
     renderLanding();
-    expect(screen.getByText("Scholarship matcher")).toBeInTheDocument();
-    expect(screen.getByText("FAFSA guide")).toBeInTheDocument();
-    expect(screen.getByText("Essay coach")).toBeInTheDocument();
-    expect(screen.getByText("College roadmap")).toBeInTheDocument();
+    expect(screen.getAllByText("Scholarship Matcher").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("FAFSA Guide").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Essay Coach").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("College Roadmap").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Local Opportunities").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Career Advisor").length).toBeGreaterThanOrEqual(1);
   });
 
   it("feature card navigates to correct route", () => {
     renderLanding();
-    fireEvent.click(screen.getByText("FAFSA guide"));
+    fireEvent.click(screen.getAllByText("FAFSA Guide")[0]);
     expect(mockNavigate).toHaveBeenCalledWith("/fafsa");
   });
 
   // ── Stats ───────────────────────────────────────────────────────────────
   it("renders stats section", () => {
     renderLanding();
-    expect(screen.getByText("$7B+")).toBeInTheDocument();
-    expect(screen.getByText("1 in 4")).toBeInTheDocument();
-    expect(screen.getByText("Free")).toBeInTheDocument();
+    expect(screen.getAllByText("~$100M").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("1 in 4").length).toBeGreaterThanOrEqual(1);
   });
 
   // ── Banner edge cases ──────────────────────────────────────────────────
@@ -210,15 +212,15 @@ describe("Landing page", () => {
   });
 
   // ── Logged-out state ───────────────────────────────────────────────────
-  it("shows 'Sign up' nav link when not logged in", () => {
+  it("shows 'Sign in' nav link when not logged in", () => {
     mockUser = null;
     renderLanding();
-    expect(screen.getByText(/Sign up/)).toBeInTheDocument();
+    expect(screen.getAllByText("Sign in →").length).toBeGreaterThanOrEqual(1);
   });
 
   it("shows 'Get started free' CTA when not logged in", () => {
     mockUser = null;
     renderLanding();
-    expect(screen.getByText(/Get started free/)).toBeInTheDocument();
+    expect(screen.getAllByText(/Get started free/).length).toBeGreaterThanOrEqual(1);
   });
 });

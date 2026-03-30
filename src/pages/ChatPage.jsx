@@ -2,9 +2,16 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useClaude } from "../hooks/useClaude";
 import { useProfile } from "../hooks/useProfile";
+import { useChatHistory } from "../hooks/useChatHistory";
+import { useRateLimit } from "../hooks/useRateLimit";
+import { useResources } from "../hooks/useResources";
+import { useAllSessions } from "../hooks/useAllSessions";
+import { useAuth } from "../hooks/useAuth";
 import ScholarshipCard from "../components/ScholarshipCard";
 import RoadmapTimeline from "../components/RoadmapTimeline";
+import ChatDrawer from "../components/ChatDrawer";
 import { supabase } from "../lib/supabase";
+import ReactMarkdown from "react-markdown";
 import styles from "./ChatPage.module.css";
 
 // ── Starter prompts per feature ───────────────────────────────────────────────
@@ -56,6 +63,60 @@ const FEATURE_META = {
   career:       { title: "Career Advisor",      icon: "💼", color: "var(--amber)" },
 };
 
+const markdownComponents = {
+  p: ({ children }) => (
+    <p style={{ margin: "0 0 8px", lineHeight: 1.65 }}>{children}</p>
+  ),
+  strong: ({ children }) => (
+    <strong style={{ fontWeight: 700, color: "var(--text)" }}>{children}</strong>
+  ),
+  h1: ({ children }) => (
+    <p style={{ fontWeight: 700, fontSize: 15, margin: "12px 0 6px", color: "var(--text)", lineHeight: 1.3 }}>{children}</p>
+  ),
+  h2: ({ children }) => (
+    <p style={{ fontWeight: 700, fontSize: 14, margin: "10px 0 4px", color: "var(--text)", lineHeight: 1.3 }}>{children}</p>
+  ),
+  h3: ({ children }) => (
+    <p style={{ fontWeight: 700, fontSize: 13, margin: "8px 0 4px", color: "var(--text-70)", lineHeight: 1.3 }}>{children}</p>
+  ),
+  ul: ({ children }) => (
+    <ul style={{ margin: "4px 0 8px", paddingLeft: 18, lineHeight: 1.65 }}>{children}</ul>
+  ),
+  ol: ({ children }) => (
+    <ol style={{ margin: "4px 0 8px", paddingLeft: 18, lineHeight: 1.65 }}>{children}</ol>
+  ),
+  li: ({ children }) => (
+    <li style={{ marginBottom: 4, color: "var(--text-70)", fontSize: 14 }}>{children}</li>
+  ),
+  code: ({ inline, children }) =>
+    inline ? (
+      <code style={{
+        background: "rgba(255,255,255,0.1)", borderRadius: 4,
+        padding: "1px 6px", fontSize: 12, fontFamily: "monospace",
+        color: "var(--green-light)",
+      }}>{children}</code>
+    ) : (
+      <pre style={{
+        background: "rgba(0,0,0,0.3)", borderRadius: 8,
+        padding: "12px 14px", fontSize: 12, fontFamily: "monospace",
+        overflowX: "auto", margin: "8px 0", color: "var(--green-light)",
+        lineHeight: 1.6,
+      }}><code>{children}</code></pre>
+    ),
+  hr: () => (
+    <hr style={{ border: "none", borderTop: "0.5px solid var(--border)", margin: "12px 0" }} />
+  ),
+  a: ({ href, children }) => (
+    <a href={href} target="_blank" rel="noopener noreferrer"
+      style={{ color: "var(--green-light)", textDecoration: "underline" }}>
+      {children}
+    </a>
+  ),
+  em: ({ children }) => (
+    <em style={{ fontStyle: "italic", color: "var(--text-70)" }}>{children}</em>
+  ),
+};
+
 export default function ChatPage({ feature }) {
   const navigate = useNavigate();
   const [input, setInput] = useState("");
@@ -63,12 +124,26 @@ export default function ChatPage({ feature }) {
   const [scholarships, setScholarships] = useState([]);
   const [roadmapMilestones, setRoadmapMilestones] = useState([]);
   const [autoStarted, setAutoStarted] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 640);
+  const [drawerOpen, setDrawerOpen] = useState(false); // mobile slide-out
   const bottomRef = useRef(null);
   const fileRef = useRef(null);
   const meta = FEATURE_META[feature];
   const starters = STARTERS[feature] ?? [];
 
   const { profile, isProfileComplete } = useProfile();
+  const { savedMessages, historyLoading, saveMessage, startNewSession } = useChatHistory(feature);
+  const { remaining, isLimited, increment } = useRateLimit();
+  const { resources } = useResources(feature);
+  const { sessions } = useAllSessions();
+  const { signOut } = useAuth();
+
+  // Track mobile viewport
+  useEffect(() => {
+    const fn = () => setIsMobile(window.innerWidth <= 640);
+    window.addEventListener("resize", fn);
+    return () => window.removeEventListener("resize", fn);
+  }, []);
 
   const handleScholarships = useCallback((results) => {
     setScholarships((prev) => [...prev, ...results]);
@@ -80,7 +155,7 @@ export default function ChatPage({ feature }) {
 
   const saveScholarship = useCallback(async (scholarship) => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) return false;
 
     const { data: existing } = await supabase
       .from("saved_scholarships")
@@ -89,7 +164,7 @@ export default function ChatPage({ feature }) {
       .eq("name", scholarship.name)
       .maybeSingle();
 
-    if (existing) return;
+    if (existing) return true; // already saved — treat as success
 
     const { error } = await supabase.from("saved_scholarships").insert({
       user_id: user.id,
@@ -101,7 +176,11 @@ export default function ChatPage({ feature }) {
       match_reason: scholarship.match_reason,
       status: "Not started",
     });
-    if (error) console.error("saveScholarship error:", error.message);
+    if (error) {
+      console.error("saveScholarship error:", error.message);
+      return false;
+    }
+    return true;
   }, []);
 
   const { messages, isLoading, error, recommendations, sendMessage, clearMessages } = useClaude({
@@ -109,6 +188,8 @@ export default function ChatPage({ feature }) {
     profile,
     onScholarships: feature === "scholarships" ? handleScholarships : null,
     onRoadmap: feature === "roadmap" ? handleRoadmap : null,
+    initialMessages: historyLoading ? null : savedMessages,
+    onMessageSaved: saveMessage,
   });
 
   // Auto-send personalized opening message on mount
@@ -136,7 +217,9 @@ export default function ChatPage({ feature }) {
 
   const handleSend = async (text = input) => {
     if (!text.trim() && !attachment) return;
+    if (isLimited) return;
     setInput("");
+    await increment();
     await sendMessage(text.trim(), attachment);
     setAttachment(null);
   };
@@ -202,8 +285,8 @@ export default function ChatPage({ feature }) {
           </div>
         )}
 
-        {/* Scholarship matches */}
-        {scholarships.length > 0 && (
+        {/* Scholarship matches — desktop only */}
+        {scholarships.length > 0 && !isMobile && (
           <div className={styles.recs}>
             <p className={styles.recsLabel}>Matches found</p>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -235,13 +318,124 @@ export default function ChatPage({ feature }) {
           {attachment && <p className={styles.imageReady}>✓ Ready — ask a question to analyze</p>}
         </div>
 
+        {/* Curated resources */}
+        {resources.length > 0 && (
+          <div className={styles.recs}>
+            <p className={styles.recsLabel}>Helpful resources</p>
+            {resources.slice(0, 4).map((r) => (
+              <a
+                key={r.id}
+                href={r.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 2,
+                  padding: "10px 12px",
+                  background: "var(--surface)",
+                  borderRadius: 8,
+                  border: "0.5px solid var(--border)",
+                  textDecoration: "none",
+                }}
+              >
+                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text)" }}>
+                  {r.is_featured ? "⭐ " : ""}{r.title}
+                </span>
+                {r.description && (
+                  <span style={{ fontSize: 11, color: "var(--text-40)", lineHeight: 1.4 }}>
+                    {r.description}
+                  </span>
+                )}
+              </a>
+            ))}
+          </div>
+        )}
+
+        {/* Switch feature — Part 7 */}
+        <div className={styles.recs}>
+          <p className={styles.recsLabel}>Other tools</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            {Object.entries(FEATURE_META)
+              .filter(([key]) => key !== feature)
+              .map(([key, m]) => (
+                <button
+                  key={key}
+                  onClick={() => navigate(`/${key}`)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "8px 10px",
+                    background: "transparent",
+                    border: "0.5px solid var(--border)",
+                    borderRadius: 8,
+                    color: "var(--text-60)",
+                    fontSize: 12,
+                    textAlign: "left",
+                    cursor: "pointer",
+                    transition: "border-color 0.15s, color 0.15s",
+                  }}
+                >
+                  <span>{m.icon}</span>
+                  <span>{m.title}</span>
+                </button>
+              ))
+            }
+          </div>
+        </div>
+
         {messages.length > 0 && (
-          <button className={styles.clearBtn} onClick={clearMessages}>Clear conversation</button>
+          <button className={styles.clearBtn} onClick={() => { clearMessages(); startNewSession(); }}>Clear conversation</button>
         )}
       </aside>
 
       {/* Chat */}
       <main className={styles.main}>
+        {/* Mobile top bar */}
+        {isMobile && (
+          <div style={{
+            display: "flex", alignItems: "center",
+            padding: "0 12px", height: 52,
+            borderBottom: "0.5px solid var(--border)",
+            background: "rgba(255,255,255,0.02)",
+            flexShrink: 0,
+          }}>
+            <button
+              onClick={() => setDrawerOpen(true)}
+              style={{
+                background: "rgba(255,255,255,0.06)",
+                border: "0.5px solid var(--border)",
+                borderRadius: 8, color: "var(--text-60)",
+                width: 36, height: 36, fontSize: 16,
+                cursor: "pointer", flexShrink: 0,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+            >
+              ☰
+            </button>
+            <span style={{
+              flex: 1, textAlign: "center", fontSize: 14,
+              fontWeight: 700, color: "var(--text)",
+            }}>
+              {meta.icon} {meta.title}
+            </span>
+            <button
+              onClick={() => { clearMessages(); startNewSession?.(); }}
+              style={{
+                background: "rgba(0,119,182,0.2)",
+                border: "0.5px solid rgba(0,119,182,0.4)",
+                borderRadius: 8, color: "#48cae4",
+                width: 36, height: 36, fontSize: 18,
+                cursor: "pointer", flexShrink: 0,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+            >
+              +
+            </button>
+          </div>
+        )}
+
         <div className={styles.messages}>
           {messages.length === 0 && (
             autoStarted ? (
@@ -268,15 +462,21 @@ export default function ChatPage({ feature }) {
               <span className={styles.messageLabel}>{msg.role === "user" ? "You" : "Legacy AI"}</span>
               <div className={styles.messageBubble}
                 style={msg.role === "assistant" ? {} : { borderColor: meta.color }}>
-                {Array.isArray(msg.content)
-                  ? msg.content.map((b, j) =>
-                      b.type === "text" ? <p key={j}>{b.text}</p>
-                      : b.type === "image" ? <img key={j} src={`data:${b.source.media_type};base64,${b.source.data}`} alt="uploaded" className={styles.msgImage} />
-                      : b.type === "document" ? <p key={j} style={{ fontSize: 12, color: "var(--text-50)" }}>📄 PDF attached</p>
-                      : null
-                    )
-                  : msg.content.split("\n").map((line, j) => <p key={j}>{line}</p>)
-                }
+                {Array.isArray(msg.content) ? (
+                  msg.content.map((b, j) =>
+                    b.type === "text" ? (
+                      <ReactMarkdown key={j} components={markdownComponents}>{b.text}</ReactMarkdown>
+                    ) : b.type === "image" ? (
+                      <img key={j} src={`data:${b.source.media_type};base64,${b.source.data}`} alt="uploaded" className={styles.msgImage} />
+                    ) : b.type === "document" ? (
+                      <p key={j} style={{ fontSize: 12, color: "var(--text-50)" }}>📄 PDF attached</p>
+                    ) : null
+                  )
+                ) : msg.role === "assistant" ? (
+                  <ReactMarkdown components={markdownComponents}>{msg.content}</ReactMarkdown>
+                ) : (
+                  <p style={{ margin: 0, whiteSpace: "pre-wrap" }}>{msg.content}</p>
+                )}
               </div>
             </div>
           ))}
@@ -294,6 +494,15 @@ export default function ChatPage({ feature }) {
 
           {roadmapMilestones.length > 0 && (
             <RoadmapTimeline milestones={roadmapMilestones} />
+          )}
+
+          {/* Mobile inline scholarship cards */}
+          {scholarships.length > 0 && isMobile && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%" }}>
+              {scholarships.map((s, i) => (
+                <ScholarshipCard key={s.name + i} scholarship={s} onSave={saveScholarship} />
+              ))}
+            </div>
           )}
 
           <div ref={bottomRef} />
@@ -322,14 +531,44 @@ export default function ChatPage({ feature }) {
             <button
               className={styles.sendBtn}
               onClick={() => handleSend()}
-              disabled={isLoading || (!input.trim() && !attachment)}
+              disabled={isLoading || isLimited || (!input.trim() && !attachment)}
               style={{ background: meta.color }}
             >
               {isLoading ? "…" : "Send"}
             </button>
           </div>
+          {remaining <= 5 && remaining > 0 && (
+            <p style={{ fontSize: 11, color: "rgba(240,100,100,0.8)", margin: "4px 0 0" }}>
+              {remaining} message{remaining !== 1 ? "s" : ""} remaining today
+            </p>
+          )}
+          {isLimited && (
+            <p style={{ fontSize: 12, color: "rgba(240,100,100,0.9)", margin: "4px 0 0" }}>
+              You&apos;ve reached your 20 message limit for today. Come back tomorrow.
+            </p>
+          )}
         </div>
       </main>
+
+      {/* Mobile drawer */}
+      {isMobile && (
+        <ChatDrawer
+          isOpen={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          currentFeature={feature}
+          sessions={sessions}
+          resources={resources}
+          onSelectSession={(sessionId) => {
+            setDrawerOpen(false);
+          }}
+          onNewChat={() => {
+            clearMessages();
+            startNewSession?.();
+          }}
+          profile={profile}
+          onSignOut={signOut}
+        />
+      )}
     </div>
   );
 }

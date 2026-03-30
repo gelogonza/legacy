@@ -81,8 +81,18 @@
   cursor: pointer;
   transition: opacity 0.15s;
 }
-.saveBtn:hover {
+.saveBtn:hover:not(:disabled) {
   opacity: 0.85;
+}
+.saveBtn:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+.saveBtnSaved {
+  background: #16a34a;
+}
+.saveBtnError {
+  background: #dc2626;
 }
 
 .removeBtn {
