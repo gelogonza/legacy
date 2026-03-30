@@ -251,8 +251,8 @@ export default function ChatPage({ feature }) {
     <div className={styles.page}>
       {/* Sidebar */}
       <aside className={styles.sidebar}>
-        <button className={styles.backBtn} onClick={() => navigate("/")}>
-          ← Back
+        <button className={styles.backBtn} onClick={() => navigate("/dashboard")}>
+          ← Dashboard
         </button>
 
         {!isProfileComplete && (
