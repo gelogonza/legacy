@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-route
 import { Analytics } from "@vercel/analytics/react";
 import { useAuth } from "./hooks/useAuth";
 import Landing from "./pages/Landing";
+import Dashboard from "./pages/Dashboard";
 import ChatPage from "./pages/ChatPage";
 import Tracker from "./pages/Tracker";
 import Profile from "./pages/Profile";
@@ -46,7 +47,7 @@ function AuthCallback() {
     // The Supabase client auto-detects the hash and fires onAuthStateChange.
     // We wait for authLoading to resolve, then redirect.
     if (!authLoading) {
-      navigate(user ? "/" : "/auth", { replace: true });
+      navigate(user ? "/dashboard" : "/auth", { replace: true });
     }
   }, [user, authLoading, navigate]);
 
@@ -67,6 +68,7 @@ export default function App() {
           <Route path="/roadmap"      element={<ProtectedRoute><ChatPage feature="roadmap" /></ProtectedRoute>} />
           <Route path="/local"        element={<ProtectedRoute><ChatPage feature="local" /></ProtectedRoute>} />
           <Route path="/career"       element={<ProtectedRoute><ChatPage feature="career" /></ProtectedRoute>} />
+          <Route path="/dashboard"    element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/tracker"      element={<ProtectedRoute><Tracker /></ProtectedRoute>} />
           <Route path="/profile"      element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         </Routes>
