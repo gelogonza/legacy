@@ -80,7 +80,7 @@ export default function Tracker() {
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <button className={styles.backBtn} onClick={() => navigate("/")}>
+        <button className={styles.backBtn} onClick={() => navigate("/dashboard")}>
           &larr; Dashboard
         </button>
         <h1 className={styles.title}>Saved Scholarships</h1>
